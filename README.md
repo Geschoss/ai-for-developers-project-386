@@ -10,7 +10,11 @@
 
 ## Стек
 
-- Разное
+- API-контракт: TypeSpec → OpenAPI
+- Бэкенд: NestJS, TypeScript, Drizzle, PostgreSQL
+- Фронтенд: React, TypeScript, Vite, Mantine
+- Тесты: Vitest, Testcontainers, Playwright
+- Развёртывание: Docker, GitHub Actions, Render
 
 ## Установка
 
