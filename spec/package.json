@@ -1,0 +1,27 @@
+{
+  "name": "spec",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsp compile .",
+    "check": "node scripts/check.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "5.0.6",
+    "@types/node": "^24.19.2",
+    "@types/supertest": "7.2.1",
+    "@typespec/compiler": "1.17.0",
+    "@typespec/http": "1.17.0",
+    "@typespec/openapi": "1.17.0",
+    "@typespec/openapi3": "1.17.0",
+    "cookie-parser": "^1.4.7",
+    "express": "5.3.0",
+    "express-openapi-validator": "5.6.2",
+    "supertest": "7.3.1",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  }
+}

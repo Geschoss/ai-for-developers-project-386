@@ -16,6 +16,20 @@ The design is settled but no application code exists yet. Read these before work
   Лимит бронирований, Адрес календаря). Use these terms in code, docs and commits; avoid the listed synonyms.
 - `docs/adr/` — decisions that look surprising; don't "fix" them without a new ADR.
 
+## Commands
+
+pnpm workspace on Node 24 (`.nvmrc`, `engines`); pnpm is pinned in `packageManager`, run it via Corepack. From the
+repo root:
+
+- `pnpm install`
+- `pnpm spec:build` — compile `spec/*.tsp` into `spec/openapi.yaml`. Never edit the YAML by hand; commit it with the
+  TypeSpec change.
+- `pnpm spec:check` — fail if the committed `spec/openapi.yaml` differs from a fresh compile (CI runs this).
+- `pnpm typecheck`, `pnpm test` — across all packages. A single file: `pnpm --filter spec exec vitest run test/<file>`.
+
+`spec/test/` checks the contract the way the backend will consume it: `express-openapi-validator` over the compiled
+YAML, with stub handlers.
+
 ## Stack and layout (planned)
 
 TypeScript on Node 24 LTS, pnpm workspaces monorepo:
@@ -30,8 +44,8 @@ TypeScript on Node 24 LTS, pnpm workspaces monorepo:
 One Docker image: Nest serves `/api/*` plus the built SPA. Deployed to Render; CI is a separate GitHub Actions
 workflow. Tests use Vitest everywhere; backend integration tests run against real Postgres via Testcontainers.
 
-When scaffolding the packages, replace this section with the `pnpm` commands (dev, lint, typecheck, test, e2e) and
-leave stack details to `docs/spec.md` and `package.json`.
+When scaffolding the remaining packages, extend **Commands** (dev, lint, e2e), drop this section and leave stack
+details to `docs/spec.md` and `package.json`.
 
 ## Constraints
 
