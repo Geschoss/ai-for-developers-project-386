@@ -60,7 +60,10 @@ model RegistrationConflict is Problem<"email_taken" | "slug_taken", 409>;
 /** Неверная пара email и пароль. Не уточняет, что именно неверно. */
 model InvalidCredentials is Problem<"invalid_credentials", 401>;
 
-/** Регистрация Владельца. Новый Владелец сразу залогинен; Горизонт планирования 14, Лимит бронирований 2. */
+/**
+ * Регистрация Владельца. Новый Владелец сразу залогинен; Горизонт планирования 14, Лимит бронирований 2.
+ * Неизвестный часовой пояс — `validation_failed`.
+ */
 @tag("Аккаунты")
 @route("/api/auth/register")
 @post

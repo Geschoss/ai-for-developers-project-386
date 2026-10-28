@@ -3,11 +3,14 @@ import cookieParser from "cookie-parser";
 import express, { type ErrorRequestHandler } from "express";
 import * as OpenApiValidator from "express-openapi-validator";
 
+/** A cookie the validator accepts as a session; whether it is valid is the backend's concern. */
+export const session = "sid=test-session";
+
 const apiSpec = fileURLToPath(new URL("../openapi.yaml", import.meta.url));
 
 /**
  * The validation layer the backend will mount (ADR-0001), with every valid request answered by a stub 200.
- * Tests use it to check what the contract lets through and what it rejects.
+ * Tests use it to check what the contract lets through and what it rejects; 200 means "passed validation".
  */
 export function contractApp() {
   const app = express();

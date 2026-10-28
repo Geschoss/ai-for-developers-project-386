@@ -13,7 +13,7 @@ const registration = {
 };
 
 describe("registerOwner", () => {
-  it("accepts a valid registration", async () => {
+  it("passes a valid registration", async () => {
     await request(app).post("/api/auth/register").send(registration).expect(200);
   });
 

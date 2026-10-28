@@ -24,7 +24,7 @@ repo root:
 - `pnpm install`
 - `pnpm spec:build` — compile `spec/*.tsp` into `spec/openapi.yaml`. Never edit the YAML by hand; commit it with the
   TypeSpec change.
-- `pnpm spec:check` — fail if the committed `spec/openapi.yaml` differs from a fresh compile (CI runs this).
+- `pnpm spec:check` — fail if the committed `spec/openapi.yaml` differs from a fresh compile; CI will run it.
 - `pnpm typecheck`, `pnpm test` — across all packages. A single file: `pnpm --filter spec exec vitest run test/<file>`.
 
 `spec/test/` checks the contract the way the backend will consume it: `express-openapi-validator` over the compiled

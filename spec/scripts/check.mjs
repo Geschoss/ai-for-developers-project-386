@@ -1,4 +1,4 @@
-// Fails when the committed openapi.yaml differs from a fresh TypeSpec compile. CI runs it (ADR-0001).
+// Fails when the committed openapi.yaml differs from a fresh TypeSpec compile. CI will run it (ADR-0001).
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

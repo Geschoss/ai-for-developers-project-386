@@ -117,7 +117,9 @@ paths:
   /api/auth/register:
     post:
       operationId: registerOwner
-      description: Регистрация Владельца. Новый Владелец сразу залогинен; Горизонт планирования 14, Лимит бронирований 2.
+      description: |-
+        Регистрация Владельца. Новый Владелец сразу залогинен; Горизонт планирования 14, Лимит бронирований 2.
+        Неизвестный часовой пояс — `validation_failed`.
       parameters: []
       responses:
         '201':
@@ -437,8 +439,9 @@ components:
             - daily_limit_reached
           description: Машиночитаемый код ошибки.
         status:
-          type: integer
-          format: int32
+          type: number
+          enum:
+            - 409
           description: HTTP-статус, дублирует статус ответа (RFC 9457).
         title:
           type: string
@@ -472,8 +475,9 @@ components:
             - own_calendar
           description: Машиночитаемый код ошибки.
         status:
-          type: integer
-          format: int32
+          type: number
+          enum:
+            - 422
           description: HTTP-статус, дублирует статус ответа (RFC 9457).
         title:
           type: string
@@ -511,8 +515,9 @@ components:
             - calendar_not_found
           description: Машиночитаемый код ошибки.
         status:
-          type: integer
-          format: int32
+          type: number
+          enum:
+            - 404
           description: HTTP-статус, дублирует статус ответа (RFC 9457).
         title:
           type: string
@@ -606,8 +611,9 @@ components:
             - forbidden
           description: Машиночитаемый код ошибки.
         status:
-          type: integer
-          format: int32
+          type: number
+          enum:
+            - 403
           description: HTTP-статус, дублирует статус ответа (RFC 9457).
         title:
           type: string
@@ -639,8 +645,9 @@ components:
             - invalid_credentials
           description: Машиночитаемый код ошибки.
         status:
-          type: integer
-          format: int32
+          type: number
+          enum:
+            - 401
           description: HTTP-статус, дублирует статус ответа (RFC 9457).
         title:
           type: string
@@ -759,8 +766,9 @@ components:
             - slug_taken
           description: Машиночитаемый код ошибки.
         status:
-          type: integer
-          format: int32
+          type: number
+          enum:
+            - 409
           description: HTTP-статус, дублирует статус ответа (RFC 9457).
         title:
           type: string
@@ -815,8 +823,9 @@ components:
             - unauthenticated
           description: Машиночитаемый код ошибки.
         status:
-          type: integer
-          format: int32
+          type: number
+          enum:
+            - 401
           description: HTTP-статус, дублирует статус ответа (RFC 9457).
         title:
           type: string
@@ -852,8 +861,9 @@ components:
             - validation_failed
           description: Машиночитаемый код ошибки.
         status:
-          type: integer
-          format: int32
+          type: number
+          enum:
+            - 400
           description: HTTP-статус, дублирует статус ответа (RFC 9457).
         title:
           type: string

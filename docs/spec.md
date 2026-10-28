@@ -88,6 +88,11 @@ RFC 9457 (`application/problem+json`) с машиночитаемым `code`. Ф
 | `slot_in_past` | 422 |
 | `own_calendar` | 422 |
 | `invalid_credentials` | 401 |
+| `not_a_slot_start` — момент не совпадает с началом Слота сетки | 422 |
+| `validation_failed` — запрос не прошёл схему, в том числе неизвестный часовой пояс | 400 |
+| `unauthenticated` | 401 |
+| `forbidden` — роль не подходит | 403 |
+| `calendar_not_found` | 404 |
 
 ## Техническое решение
 

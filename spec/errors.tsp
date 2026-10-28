@@ -16,7 +16,7 @@ model Problem<Code extends string, Status extends int32> {
   code: Code;
 
   /** HTTP-статус, дублирует статус ответа (RFC 9457). */
-  status: int32;
+  status: Status;
 
   /** Короткое описание для разработчика, не для показа пользователю. */
   title: string;

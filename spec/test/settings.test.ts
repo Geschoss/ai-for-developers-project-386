@@ -1,9 +1,8 @@
 import request from "supertest";
 import { describe, it } from "vitest";
-import { contractApp } from "./app.ts";
+import { contractApp, session } from "./app.ts";
 
 const app = contractApp();
-const session = "sid=test-session";
 
 const settings = { timeZone: "Asia/Yekaterinburg", planningHorizonDays: 14, dailyBookingLimit: 2 };
 

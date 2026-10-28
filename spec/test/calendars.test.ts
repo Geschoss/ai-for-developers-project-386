@@ -1,6 +1,6 @@
 import request from "supertest";
 import { describe, it } from "vitest";
-import { contractApp } from "./app.ts";
+import { contractApp, session } from "./app.ts";
 
 const app = contractApp();
 
@@ -39,7 +39,7 @@ describe("createBooking", () => {
   it("also passes with a session, so the server can detect own_calendar", async () => {
     await request(app)
       .post("/api/calendars/anna-01/bookings")
-      .set("Cookie", "sid=test-session")
+      .set("Cookie", session)
       .send(booking)
       .expect(200);
   });
