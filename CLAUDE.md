@@ -45,3 +45,17 @@ leave stack details to `docs/spec.md` and `package.json`.
 
 `.agents/skills/` (symlinked as `.claude/skills`) holds vendored `mattpocock/skills`, pinned in `skills-lock.json`.
 They are third-party: change behavior via project docs, and update them only through the lock file.
+
+### Issue tracker
+
+Work is tracked as GitHub Issues in this repo, with native blocking edges; `ready-for-agent` issues are meant to be
+picked up by agents. Before taking an issue, read the "Taking a ticket" workflow in `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` and `docs/adr/` at the root. See `docs/agents/domain.md`.
