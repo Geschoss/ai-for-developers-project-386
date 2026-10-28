@@ -5,11 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project
 
 "Календарь звонков" — a call-booking calendar service built with AI assistance as a Hexlet learning project
-(https://ru.hexlet.io/programs/ai-for-developers). Expected behavior is described at https://files.hexlet.app/a/2ipc5m.
+(https://ru.hexlet.io/programs/ai-for-developers).
 
 The design is settled but no application code exists yet. Read these before working:
 
-- `docs/spec.md` — the full product and technical spec (roles, domain rules, screens, error codes, stack).
+- `docs/spec.md` — the source of truth for behavior: roles, domain rules, screens, error codes, stack.
+- `docs/reference/` — screenshots of Hexlet's reference app, a visual reference only; the spec deliberately extends
+  it (registration, roles, Owner settings).
 - `GLOSSARY.md` — canonical domain terms (Владелец, Гость, Администратор, Слот, Бронирование, Горизонт планирования,
   Лимит бронирований, Адрес календаря). Use these terms in code, docs and commits; avoid the listed synonyms.
 - `docs/adr/` — decisions that look surprising; don't "fix" them without a new ADR.
@@ -28,8 +30,8 @@ TypeScript on Node 24 LTS, pnpm workspaces monorepo:
 One Docker image: Nest serves `/api/*` plus the built SPA. Deployed to Render; CI is a separate GitHub Actions
 workflow. Tests use Vitest everywhere; backend integration tests run against real Postgres via Testcontainers.
 
-The Python guidelines in the user's global CLAUDE.md do not apply to this project. Commands will be added here once
-the packages are scaffolded.
+When scaffolding the packages, replace this section with the `pnpm` commands (dev, lint, typecheck, test, e2e) and
+leave stack details to `docs/spec.md` and `package.json`.
 
 ## Constraints
 
@@ -41,6 +43,5 @@ the packages are scaffolded.
 
 ## Agent skills
 
-`.agents/skills/` contains vendored skills from `mattpocock/skills` (code-review, grill-me, grill-with-docs, implement,
-implement-spec, retro, to-spec, to-tickets), pinned by hash in `skills-lock.json`. Treat them as third-party content;
-don't edit them in place.
+`.agents/skills/` (symlinked as `.claude/skills`) holds vendored `mattpocock/skills`, pinned in `skills-lock.json`.
+They are third-party: change behavior via project docs, and update them only through the lock file.
