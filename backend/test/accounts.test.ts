@@ -124,6 +124,7 @@ describe("POST /api/auth/register", () => {
       .send({ ...body, email: mixedCaseEmail });
     expect(created.status).toBe(201);
     expect(created.body).toMatchObject({ email: body.email });
+    expectMatchesSpec(created, "post", "/api/auth/register");
 
     const conflict = await request(httpServer(runningApp()))
       .post("/api/auth/register")
@@ -166,6 +167,7 @@ describe("POST /api/auth/register conflicts", () => {
 
     expect(conflict.status).toBe(409);
     expect(conflict.body).toMatchObject({ code: "email_taken" });
+    expectMatchesSpec(conflict, "post", "/api/auth/register");
   });
 });
 
@@ -196,6 +198,7 @@ describe("POST /api/auth/register validation", () => {
         /^sid=[0-9a-f-]{36}; HttpOnly; SameSite=Lax; Path=\/; Max-Age=\d+; Secure$/u,
       ),
     ]);
+    expectMatchesSpec(response, "post", "/api/auth/register");
   });
 });
 
