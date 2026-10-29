@@ -1,0 +1,15 @@
+{
+  "name": "call-calendar",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "spec:build": "pnpm --filter spec build",
+    "spec:check": "pnpm --filter spec check",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  }
+}
