@@ -8,7 +8,8 @@ const config = defineConfig({
   projects: [{ name: "chromium", use: { ...desktopChrome } }],
   testDir: "tests",
   // Starts Postgres and the built app (`pnpm e2e` builds it first).
-  use: { baseURL, trace: "retain-on-failure" },
+  // GitHub Actions is set to UTC. The suite should register in that zone, not the developer's.
+  use: { baseURL, timezoneId: "UTC", trace: "retain-on-failure" },
 });
 
 export { baseURL };

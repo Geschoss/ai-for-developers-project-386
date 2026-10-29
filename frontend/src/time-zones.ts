@@ -1,4 +1,14 @@
-const timeZoneNames = Intl.supportedValuesOf("timeZone");
+const listedTimeZones = Intl.supportedValuesOf("timeZone");
+
+/** `supportedValuesOf` omits `UTC`. A machine set to UTC, including CI, still needs it in the list. */
+const withUtc = (names: readonly string[]): string[] => {
+  if (names.includes("UTC")) {
+    return [...names];
+  }
+  return ["UTC", ...names];
+};
+
+const timeZoneNames = withUtc(listedTimeZones);
 
 /** The browser's IANA zone when the runtime knows it, otherwise UTC. */
 const browserTimeZone = (): string => {

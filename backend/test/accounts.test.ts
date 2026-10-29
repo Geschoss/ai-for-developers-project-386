@@ -172,6 +172,15 @@ describe("POST /api/auth/register conflicts", () => {
 });
 
 describe("POST /api/auth/register validation", () => {
+  it("accepts UTC, which Intl.supportedValuesOf omits", async () => {
+    const response = await request(httpServer(runningApp()))
+      .post("/api/auth/register")
+      .send(registration({ timeZone: "UTC" }));
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({ timeZone: "UTC" });
+    expectMatchesSpec(response, "post", "/api/auth/register");
+  });
+
   it("rejects an unknown time zone", async () => {
     const response = await request(httpServer(runningApp()))
       .post("/api/auth/register")
