@@ -11,6 +11,7 @@ tags:
   - name: Владелец
   - name: Публичный календарь
   - name: Администратор
+  - name: Служебное
 paths:
   /api/admin/owners:
     get:
@@ -290,6 +291,20 @@ paths:
                 $ref: '#/components/schemas/CalendarNotFound'
       tags:
         - Публичный календарь
+  /api/health:
+    get:
+      operationId: getHealth
+      description: Приложение запущено и достучалось до базы. Его опрашивает health check при деплое.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+      tags:
+        - Служебное
   /api/owner/bookings:
     get:
       operationId: listUpcomingBookings
@@ -632,6 +647,15 @@ components:
         email:
           $ref: '#/components/schemas/Email'
       description: 'Гость: бронирует без аккаунта, по имени и email.'
+    HealthStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
     InvalidCredentials:
       type: object
       required:

@@ -18,12 +18,30 @@
 
 ## Установка
 
-<!-- Опишите установку: клонирование, зависимости, переменные окружения -->
+Нужны [mise](https://mise.jdx.dev/) (ставит Node и pnpm нужных версий из `mise.toml`) и Docker.
 
 ```bash
 git clone https://github.com/Geschoss/ai-for-developers-project-386.git
 cd ai-for-developers-project-386
+mise install
+pnpm install
 ```
+
+Запуск всего приложения с базой — в Docker, на http://localhost:3000:
+
+```bash
+docker compose up --build
+```
+
+Режим разработки: база в Docker, бэкенд и фронтенд с перезагрузкой, фронтенд на http://localhost:5173:
+
+```bash
+docker compose up -d db
+cp .env.example backend/.env
+pnpm dev
+```
+
+Проверки: `pnpm typecheck`, `pnpm test` (нужен запущенный Docker), `pnpm e2e`.
 
 ## Использование
 

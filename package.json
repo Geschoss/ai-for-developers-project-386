@@ -2,14 +2,20 @@
   "name": "call-calendar",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.15.0",
   "engines": {
     "node": ">=24 <25"
   },
   "scripts": {
+    "dev": "pnpm --parallel --filter backend --filter frontend dev",
+    "build": "pnpm --filter frontend --filter backend build",
+    "start": "pnpm --filter backend start",
     "spec:build": "pnpm --filter spec build",
     "spec:check": "pnpm --filter spec check",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "typecheck": "tsc -b",
+    "test": "pnpm -r --filter '!e2e' test",
+    "e2e": "pnpm build && pnpm --filter e2e test"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
   }
 }

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 "Календарь звонков" — a call-booking calendar service built with AI assistance as a Hexlet learning project
 (https://ru.hexlet.io/programs/ai-for-developers).
 
-The design is settled but no application code exists yet. Read these before working:
+The design is settled; the app skeleton exists and features are built on it issue by issue. Read these before working:
 
 - `docs/spec.md` — the source of truth for behavior: roles, domain rules, screens, error codes, stack.
 - `docs/reference/` — screenshots of Hexlet's reference app, a visual reference only; the spec deliberately extends
@@ -18,34 +18,25 @@ The design is settled but no application code exists yet. Read these before work
 
 ## Commands
 
-pnpm workspace on Node 24 (`.nvmrc`, `engines`); pnpm is pinned in `packageManager`, run it via Corepack. From the
-repo root:
+pnpm workspace (`spec/`, `backend/`, `frontend/`, `e2e/`). Node and pnpm versions are pinned in `mise.toml`; run
+`mise install` once, and use mise's pnpm: a globally installed pnpm of another major rewrites `pnpm-lock.yaml`. From
+the repo root:
 
 - `pnpm install`
-- `pnpm spec:build` — compile `spec/*.tsp` into `spec/openapi.yaml`. Never edit the YAML by hand; commit it with the
-  TypeSpec change.
-- `pnpm spec:check` — fail if the committed `spec/openapi.yaml` differs from a fresh compile; CI will run it.
-- `pnpm typecheck`, `pnpm test` — across all packages. A single file: `pnpm --filter spec exec vitest run test/<file>`.
+- `pnpm dev` — backend (Nest, watch, port 3000) and frontend (Vite, proxies `/api` to 3000). Needs Postgres: `docker
+  compose up -d db` and `backend/.env` copied from `.env.example`.
+- `pnpm spec:build` — compile `spec/*.tsp` into `spec/openapi.yaml` and the shared types `spec/api.d.ts` (import them
+  as `spec/api`). Never edit either by hand; commit them with the TypeSpec change.
+- `pnpm spec:check` — fail if the committed `spec/openapi.yaml` or `spec/api.d.ts` differ from a fresh compile.
+- `pnpm typecheck` — `tsc -b` over every package.
+- `pnpm test` — Vitest in `spec`, `backend`, `frontend`. A single file: `pnpm --filter backend exec vitest run
+  test/<file>`. Backend tests start Postgres through Testcontainers, so Docker must be running.
+- `pnpm e2e` — build, then Playwright against the built app and a Testcontainers Postgres.
+- `docker compose up --build` — the production image with Postgres, on http://localhost:3000.
 
-`spec/test/` checks the contract the way the backend will consume it: `express-openapi-validator` over the compiled
+Backend integration tests go through `createApp()` with supertest and check every response with `expectMatchesSpec`
+(`backend/test/contract.ts`). `spec/test/` checks the contract alone: `express-openapi-validator` over the compiled
 YAML, with stub handlers.
-
-## Stack and layout (planned)
-
-TypeScript on Node 24 LTS, pnpm workspaces monorepo:
-
-- `spec/` — TypeSpec API contract, compiled to a committed `spec/openapi.yaml` (the single source of truth for the API).
-  Every API change starts here.
-- `backend/` — NestJS, Drizzle + PostgreSQL. Requests are validated by `express-openapi-validator` against the
-  OpenAPI file, not by class-validator DTOs (ADR-0001). Types come from `openapi-typescript`.
-- `frontend/` — React + Vite + Mantine SPA, API client via `openapi-fetch`.
-- `e2e/` — Playwright.
-
-One Docker image: Nest serves `/api/*` plus the built SPA. Deployed to Render; CI is a separate GitHub Actions
-workflow. Tests use Vitest everywhere; backend integration tests run against real Postgres via Testcontainers.
-
-When scaffolding the remaining packages, extend **Commands** (dev, lint, e2e), drop this section and leave stack
-details to `docs/spec.md` and `package.json`.
 
 ## Constraints
 

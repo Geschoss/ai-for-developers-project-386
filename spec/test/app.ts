@@ -12,7 +12,7 @@ const apiSpec = fileURLToPath(new URL("../openapi.yaml", import.meta.url));
  * The validation layer the backend will mount (ADR-0001), with every valid request answered by a stub 200.
  * Tests use it to check what the contract lets through and what it rejects; 200 means "passed validation".
  */
-export function contractApp() {
+export function contractApp(): express.Express {
   const app = express();
   app.use(express.json());
   app.use(cookieParser());

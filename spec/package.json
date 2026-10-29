@@ -3,9 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsp compile .",
+    "build": "tsp compile main.tsp && openapi-typescript openapi.yaml -o api.d.ts",
     "check": "node scripts/check.mjs",
-    "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "devDependencies": {
@@ -21,7 +20,14 @@
     "express": "5.3.0",
     "express-openapi-validator": "5.6.2",
     "supertest": "7.3.1",
-    "typescript": "7.0.2",
-    "vitest": "5.0.5"
+    "typescript": "6.0.3",
+    "vitest": "5.0.5",
+    "openapi-typescript": "7.13.0"
+  },
+  "exports": {
+    "./api": {
+      "types": "./api.d.ts"
+    },
+    "./openapi.yaml": "./openapi.yaml"
   }
 }

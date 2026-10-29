@@ -1,4 +1,15 @@
 packages:
   - spec
+  - backend
+  - frontend
+  - e2e
 
 engineStrict: true
+
+allowBuilds:
+  "@swc/core": true
+  esbuild: true
+  # Optional native speedups and a notice script from Testcontainers' dependencies; not needed.
+  cpu-features: false
+  protobufjs: false
+  ssh2: false
