@@ -1,5 +1,6 @@
 import { type DynamicModule, Module } from "@nestjs/common";
 
+import { AccountsModule } from "./accounts/accounts.module.js";
 import { APP_OPTIONS, type AppOptions, AppOptionsModule } from "./app-options.js";
 import { DatabaseModule } from "./database/database.module.js";
 import { HealthController } from "./health/health.controller.js";
@@ -15,7 +16,7 @@ class AppModule {
     };
     return {
       controllers: [HealthController],
-      imports: [optionsModule, DatabaseModule],
+      imports: [optionsModule, DatabaseModule, AccountsModule],
       module: AppModule,
     };
   }

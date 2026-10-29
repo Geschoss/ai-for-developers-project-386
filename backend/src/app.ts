@@ -37,6 +37,8 @@ const createApp = async (options: AppOptions): Promise<NestExpressApplication> =
   const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(options), {
     bodyParser: false,
   });
+  // One proxy hop: Render's TLS terminator. Local HTTP then has request.secure === false (ADR-0005).
+  app.set("trust proxy", 1);
   app.setGlobalPrefix("api");
   app.useGlobalFilters(new ProblemFilter());
   app.use(express.json(), cookieParser());

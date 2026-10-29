@@ -79,19 +79,31 @@ const documentedContent = (operation: Operation, status: string): Record<string,
  * Asserts that a response is one the spec documents for the operation: its status is listed, and its content type
  * and body match that response's schema. Every integration test checks responses this way (ADR-0001).
  */
+const expectBody = (
+  response: Response,
+  documented: { method: string; path: string; status: string },
+): void => {
+  const content = documentedContent(
+    operationOf(documented.method, documented.path),
+    documented.status,
+  );
+  if (Object.keys(content).length === 0) {
+    expect(response.text).toBe("");
+    return;
+  }
+  const mediaType = mediaTypeOf(response);
+  expect(Object.keys(content), `content type ${mediaType} is not documented`).toContain(mediaType);
+  const ref = `openapi#/${pointer("paths", documented.path, documented.method, "responses", documented.status, "content", mediaType, "schema")}`;
+  const validate = ajv.compile({ $ref: ref });
+  validate(response.body);
+  expect(validate.errors ?? []).toEqual([]);
+};
+
 const expectMatchesSpec = (response: Response, method: string, path: string): void => {
   const operation = operationOf(method, path);
   const status = String(response.status);
   expect(Object.keys(operation.responses), `status ${status} is not documented`).toContain(status);
-
-  const content = documentedContent(operation, status);
-  const mediaType = mediaTypeOf(response);
-  expect(Object.keys(content), `content type ${mediaType} is not documented`).toContain(mediaType);
-
-  const ref = `openapi#/${pointer("paths", path, method, "responses", status, "content", mediaType, "schema")}`;
-  const validate = ajv.compile({ $ref: ref });
-  validate(response.body);
-  expect(validate.errors ?? []).toEqual([]);
+  expectBody(response, { method, path, status });
 };
 
 export { expectMatchesSpec };

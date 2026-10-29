@@ -1,4 +1,55 @@
-// Drizzle tables. Empty until the first feature adds one; drizzle-kit generates migrations from this file.
+import { sql } from "drizzle-orm";
+import { check, integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
-// oxlint-disable-next-line unicorn/require-module-specifiers -- no tables yet; the export keeps this file a module
-export {};
+/**
+ * Пользователи. Роль `owner` — Владелец с календарём; роль `admin` — Администратор без календаря.
+ * Администратора создаёт отдельная задача, регистрация его не создаёт.
+ */
+const users = pgTable(
+  "users",
+  {
+    calendarSlug: text("calendar_slug"),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true }).notNull().defaultNow(),
+    dailyBookingLimit: integer("daily_booking_limit"),
+    email: text("email").notNull(),
+    id: uuid("id").primaryKey(),
+    name: text("name"),
+    passwordHash: text("password_hash").notNull(),
+    planningHorizonDays: integer("planning_horizon_days"),
+    role: text("role", { enum: ["owner", "admin"] }).notNull(),
+    timeZone: text("time_zone"),
+  },
+  (table) => [
+    uniqueIndex("users_email_unique").on(sql`lower(${table.email})`),
+    uniqueIndex("users_calendar_slug_unique").on(table.calendarSlug),
+    check(
+      "users_role_shape",
+      sql`(
+        ${table.role} = 'owner'
+        AND ${table.name} IS NOT NULL
+        AND ${table.calendarSlug} IS NOT NULL
+        AND ${table.timeZone} IS NOT NULL
+        AND ${table.planningHorizonDays} IS NOT NULL
+        AND ${table.dailyBookingLimit} IS NOT NULL
+      ) OR (
+        ${table.role} = 'admin'
+        AND ${table.name} IS NULL
+        AND ${table.calendarSlug} IS NULL
+        AND ${table.timeZone} IS NULL
+        AND ${table.planningHorizonDays} IS NULL
+        AND ${table.dailyBookingLimit} IS NULL
+      )`,
+    ),
+  ],
+);
+
+/** Серверная сессия. Идентификатор — значение cookie `sid`. */
+const sessions = pgTable("sessions", {
+  expiresAt: timestamp("expires_at", { mode: "date", withTimezone: true }).notNull(),
+  id: uuid("id").primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+});
+
+export { sessions, users };

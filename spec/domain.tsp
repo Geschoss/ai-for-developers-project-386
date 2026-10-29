@@ -31,7 +31,7 @@ scalar Email extends string;
 @maxLength(100)
 scalar PersonName extends string;
 
-@minLength(8)
+// @minLength(8) — проверка длины пароля временно выключена
 @maxLength(128)
 scalar Password extends string;
 
