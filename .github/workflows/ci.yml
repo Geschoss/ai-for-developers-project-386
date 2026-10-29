@@ -1,5 +1,4 @@
 # Project checks. hexlet-check.yml is Hexlet's and stays untouched.
-# Push and pull_request for the same commit share a SHA, so the second run cancels the first.
 name: ci
 
 on:
@@ -11,12 +10,8 @@ permissions:
   # actions/cache saves the pnpm store from a post-step.
   actions: write
 
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.head.sha || github.sha }}
-  cancel-in-progress: true
-
 jobs:
-  check:
+  ci:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
