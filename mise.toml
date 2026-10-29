@@ -36,5 +36,9 @@ depends = ["lint", "format", "typecheck", "knip", "depcruise"]
 description = "Lint and format staged files, no autofix"
 run = "bash scripts/pre-commit.sh"
 
+[tasks.commit-msg]
+description = "Conventional Commits subject and a Refs: #<n> trailer"
+run = "bash scripts/commit-message.sh commit"
+
 [hooks]
-postinstall = "mise generate git-pre-commit --write"
+postinstall = "mise generate git-pre-commit --write && mise generate git-pre-commit --write --hook commit-msg --task commit-msg"
