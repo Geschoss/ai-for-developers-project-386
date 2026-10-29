@@ -12,7 +12,7 @@ while IFS= read -r -d '' file; do
     continue
   fi
   case "${file}" in
-    spec/openapi.yaml | spec/api.d.ts | pnpm-lock.yaml | .github/workflows/hexlet-check.yml)
+    spec/openapi.yaml | spec/api.d.ts | pnpm-lock.yaml | CHANGELOG.md | .github/workflows/hexlet-check.yml)
       continue
       ;;
     backend/drizzle | backend/drizzle/* | .agents | .agents/* | .claude | .claude/*)
