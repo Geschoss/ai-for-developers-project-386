@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 "Календарь звонков" — a call-booking calendar service built with AI assistance as a Hexlet learning project
 (https://ru.hexlet.io/programs/ai-for-developers).
 
-The design is settled but no application code exists yet. Read these before working:
+The design is settled; the app skeleton exists and features are built on it issue by issue. Read these before working:
 
 - `docs/spec.md` — the source of truth for behavior: roles, domain rules, screens, error codes, stack.
 - `docs/reference/` — screenshots of Hexlet's reference app, a visual reference only; the spec deliberately extends
