@@ -12,16 +12,17 @@ Follow this when you are asked to work on an issue (for example `/implement #12`
    `ready-for-human` need the user (accounts, secrets, dashboards); don't start them on your own.
 2. **Claim.** `gh issue edit <n> --add-assignee @me`, before any other write.
 3. **Read context.** The issue body, its comments, and the closed blockers' PRs for what already exists. Then
-   `CLAUDE.md`, `docs/spec.md` (the source of truth for behaviour), `GLOSSARY.md`, and the ADRs the issue names.
+   `AGENTS.md`, `docs/spec.md` (the source of truth for behaviour), `GLOSSARY.md`, and the ADRs the issue names.
 4. **Branch.** From fresh `main`: `git switch -c issue-<n>-<short-slug>`.
 5. **Build.** Test-first where there is a seam (`/tdd`). API changes start in TypeSpec under `spec/`, then
    regenerate and commit `spec/openapi.yaml` (ADR-0001). Keep to the issue's scope; if you find missing or wrong
-   requirements, comment on the issue instead of silently expanding it.
+   requirements, comment on the issue instead of silently expanding it. Commit messages follow **Commits** in
+   `AGENTS.md`.
 6. **Verify.** Lint, typecheck, the full test suite and the E2E scenarios the issue lists must pass locally. Tick the
    acceptance criteria you met in the issue body.
-7. **Hand off.** Open a PR whose body starts with `Closes #<n>` (use `/pr`), and leave the issue open: merging the PR
-   closes it and unblocks dependent issues. If you stop before finishing, comment on the issue with what is done and
-   what remains, then unassign yourself.
+7. **Hand off.** Open a PR titled and bodied per **Commits** in `AGENTS.md` (use `/pr`), and leave the issue open:
+   merging the PR closes it and unblocks dependent issues. If you stop before finishing, comment on the issue with
+   what is done and what remains, then unassign yourself.
 
 ## Conventions
 
