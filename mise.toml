@@ -3,3 +3,38 @@
 [tools]
 node = "24.22.1"
 pnpm = "12.15.0"
+
+[tasks.lint]
+description = "oxlint, warnings are errors"
+run = "pnpm exec oxlint --deny-warnings"
+
+[tasks.format]
+description = "oxfmt check, no writes"
+run = "pnpm exec oxfmt --check"
+
+[tasks.fix]
+description = "oxlint --fix, then oxfmt"
+run = "pnpm exec oxlint --fix && pnpm exec oxfmt"
+
+[tasks.typecheck]
+description = "tsc -b across the workspace"
+run = "pnpm exec tsc -b"
+
+[tasks.knip]
+description = "Unused files, exports and dependencies"
+run = "pnpm exec knip"
+
+[tasks.depcruise]
+description = "Cycles and cross-package imports"
+run = "pnpm exec depcruise --config dependency-cruiser.config.js frontend backend spec e2e"
+
+[tasks.check]
+description = "lint, format, typecheck, knip and depcruise"
+depends = ["lint", "format", "typecheck", "knip", "depcruise"]
+
+[tasks.pre-commit]
+description = "Lint and format staged files, no autofix"
+run = "bash scripts/pre-commit.sh"
+
+[hooks]
+postinstall = "mise generate git-pre-commit --write"

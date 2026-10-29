@@ -28,7 +28,11 @@ the repo root:
 - `pnpm spec:build` — compile `spec/*.tsp` into `spec/openapi.yaml` and the shared types `spec/api.d.ts` (import them
   as `spec/api`). Never edit either by hand; commit them with the TypeSpec change.
 - `pnpm spec:check` — fail if the committed `spec/openapi.yaml` or `spec/api.d.ts` differ from a fresh compile.
-- `pnpm typecheck` — `tsc -b` over every package.
+- `pnpm typecheck` — `tsc -b` over every package. Same command as `mise run typecheck`.
+- `mise run check` — oxlint (`--deny-warnings`), oxfmt `--check`, `tsc -b`, knip, dependency-cruiser. The pieces
+  are `mise run lint`, `format`, `fix` (oxlint `--fix`, then oxfmt), `typecheck`, `knip`, `depcruise`.
+- `mise install` also installs the git pre-commit hook. The hook checks oxlint and oxfmt on staged files only and
+  does not autofix. knip, dependency-cruiser and typecheck stay out of the hook.
 - `pnpm test` — Vitest in `spec`, `backend`, `frontend`. A single file: `pnpm --filter backend exec vitest run
   test/<file>`. Backend tests start Postgres through Testcontainers, so Docker must be running.
 - `pnpm e2e` — build, then Playwright against the built app and a Testcontainers Postgres.
@@ -42,8 +46,7 @@ YAML, with stub handlers.
 
 - `.github/workflows/hexlet-check.yml` is auto-generated and runs Hexlet's automated checks on every push. Do not edit,
   delete, or rename it, and do not rename the repository.
-- `README.md` is in Russian; the Установка and Использование sections are still placeholders to fill in as the
-  project develops.
+- `README.md` is in Russian; the Использование section is still a placeholder to fill in as the project develops.
 - Admin credentials come from `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars; never commit them (the repo is public).
 
 ## Agent skills

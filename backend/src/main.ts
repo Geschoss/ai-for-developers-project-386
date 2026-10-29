@@ -1,14 +1,16 @@
 import { fileURLToPath } from "node:url";
+
 import { createApp } from "./app.js";
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
+const databaseUrl = process.env["DATABASE_URL"];
+if (databaseUrl === undefined || databaseUrl.length === 0) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const app = await createApp({
-  databaseUrl,
-  spaDir: process.env.SPA_DIR ?? fileURLToPath(new URL("../../frontend/dist", import.meta.url)),
-});
+const spaDir =
+  process.env["SPA_DIR"] ?? fileURLToPath(new URL("../../frontend/dist", import.meta.url));
+const port = process.env["PORT"];
+
+const app = await createApp({ databaseUrl, spaDir });
 app.enableShutdownHooks();
-await app.listen(Number(process.env.PORT ?? 3000));
+await app.listen(Number(port ?? 3000));

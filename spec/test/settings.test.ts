@@ -1,10 +1,10 @@
 import request from "supertest";
 import { describe, it } from "vitest";
+
 import { contractApp, session } from "./app.ts";
 
-const app = contractApp();
-
-const settings = { timeZone: "Asia/Yekaterinburg", planningHorizonDays: 14, dailyBookingLimit: 2 };
+const app = contractApp(),
+  settings = { dailyBookingLimit: 2, planningHorizonDays: 14, timeZone: "Asia/Yekaterinburg" };
 
 describe("getOwnerSettings", () => {
   it("requires a session", async () => {
@@ -22,8 +22,8 @@ describe("updateOwnerSettings", () => {
   });
 
   it.each([
-    { planningHorizonDays: 1, dailyBookingLimit: 1 },
-    { planningHorizonDays: 60, dailyBookingLimit: 18 },
+    { dailyBookingLimit: 1, planningHorizonDays: 1 },
+    { dailyBookingLimit: 18, planningHorizonDays: 60 },
   ])("accepts boundary values %j", async (bounds) => {
     await request(app)
       .put("/api/owner/settings")

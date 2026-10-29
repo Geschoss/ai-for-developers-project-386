@@ -1,33 +1,60 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
 import type { INestApplication } from "@nestjs/common";
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testcontainers/postgresql";
-import pg from "pg";
+import { type StartedPostgreSqlContainer, PostgreSqlContainer } from "@testcontainers/postgresql";
+import { Client } from "pg";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
 import { createApp } from "../src/app.js";
 import { expectMatchesSpec } from "./contract.js";
 
-let database: StartedPostgreSqlContainer;
-let app: INestApplication;
+// oxlint-disable-next-line unicorn/no-useless-undefined -- initializer so TypeScript treats the binding as assigned before beforeAll
+let database: StartedPostgreSqlContainer | undefined = undefined;
+// oxlint-disable-next-line unicorn/no-useless-undefined -- initializer so TypeScript treats the binding as assigned before beforeAll
+let app: INestApplication | undefined = undefined;
+
+const startedDatabase = (): StartedPostgreSqlContainer => {
+  if (database === undefined) {
+    throw new Error("Postgres was not started");
+  }
+  return database;
+};
+
+type HttpServer = Parameters<typeof request>[0];
+
+// oxlint-disable-next-line typescript/no-unsafe-return -- NestJS types getHttpServer() as any
+const httpServer = (application: INestApplication): HttpServer => application.getHttpServer();
+
+const runningApp = (): INestApplication => {
+  if (app === undefined) {
+    throw new Error("The app was not started");
+  }
+  return app;
+};
 
 beforeAll(async () => {
   database = await new PostgreSqlContainer("postgres:18-alpine").start();
   const spaDir = mkdtempSync(join(tmpdir(), "spa-"));
   writeFileSync(join(spaDir, "index.html"), "<!doctype html><title>SPA</title>");
-  app = await createApp({ databaseUrl: database.getConnectionUri(), spaDir });
+  app = await createApp({ databaseUrl: startedDatabase().getConnectionUri(), spaDir });
   await app.init();
 });
 
 afterAll(async () => {
-  await app?.close();
-  await database?.stop();
+  if (app !== undefined) {
+    await app.close();
+  }
+  if (database !== undefined) {
+    await database.stop();
+  }
 });
 
 describe("GET /api/health", () => {
   it("answers 200 as the spec describes", async () => {
-    const response = await request(app.getHttpServer()).get("/api/health");
+    const response = await request(httpServer(runningApp())).get("/api/health");
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ status: "ok" });
@@ -37,11 +64,17 @@ describe("GET /api/health", () => {
 
 describe("startup", () => {
   it("applies migrations", async () => {
-    const client = new pg.Client({ connectionString: database.getConnectionUri() });
+    const client = new Client({ connectionString: startedDatabase().getConnectionUri() });
     await client.connect();
     try {
-      const { rows } = await client.query("select count(*)::int as applied from drizzle.__drizzle_migrations");
-      expect(rows[0].applied).toBeGreaterThan(0);
+      const { rows } = await client.query<{ applied: number }>(
+        "select count(*)::int as applied from drizzle.__drizzle_migrations",
+      );
+      const [first] = rows;
+      if (first === undefined) {
+        throw new Error("migration count missing");
+      }
+      expect(first.applied).toBeGreaterThan(0);
     } finally {
       await client.end();
     }
@@ -50,15 +83,19 @@ describe("startup", () => {
 
 describe("a request that breaks the spec", () => {
   it("gets 400 problem+json naming the offending field", async () => {
-    const response = await request(app.getHttpServer())
-      .post("/api/auth/register")
-      .send({ name: "Анна", email: "not-an-email", password: "long-enough", calendarSlug: "anna", timeZone: "UTC" });
+    const response = await request(httpServer(runningApp())).post("/api/auth/register").send({
+      calendarSlug: "anna",
+      email: "not-an-email",
+      name: "Анна",
+      password: "long-enough",
+      timeZone: "UTC",
+    });
 
     expect(response.status).toBe(400);
     expect(response.body).toMatchObject({
       code: "validation_failed",
-      status: 400,
       issues: [expect.objectContaining({ path: "/body/email" })],
+      status: 400,
     });
     expectMatchesSpec(response, "post", "/api/auth/register");
   });
@@ -66,16 +103,16 @@ describe("a request that breaks the spec", () => {
 
 describe("paths outside /api", () => {
   it.each(["/", "/u/anna", "/register"])("serve the SPA at %s", async (path) => {
-    const response = await request(app.getHttpServer()).get(path);
+    const response = await request(httpServer(runningApp())).get(path);
 
     expect(response.status).toBe(200);
     expect(response.text).toContain("<title>SPA</title>");
   });
 
   it("do not swallow unknown API paths", async () => {
-    const response = await request(app.getHttpServer()).get("/api/nope");
+    const response = await request(httpServer(runningApp())).get("/api/nope");
 
     expect(response.status).toBe(404);
-    expect(response.headers["content-type"]).toMatch(/^application\/problem\+json/);
+    expect(response.headers["content-type"]).toMatch(/^application\/problem\+json/u);
   });
 });
