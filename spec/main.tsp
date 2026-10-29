@@ -6,6 +6,7 @@ import "./accounts.tsp";
 import "./owner.tsp";
 import "./calendars.tsp";
 import "./admin.tsp";
+import "./health.tsp";
 
 using Http;
 using OpenAPI;

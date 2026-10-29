@@ -1,0 +1,5 @@
+# Exact tool versions for local development and CI. The Dockerfile pins the same Node (`FROM node:<version>`)
+# and reads the pnpm version from this file.
+[tools]
+node = "24.22.1"
+pnpm = "12.15.0"
