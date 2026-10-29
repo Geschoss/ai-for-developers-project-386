@@ -39,10 +39,11 @@ class AdminSeed implements OnApplicationBootstrap {
     }
     const passwordHash = await hashPassword(this.options.admin.password);
     // Another instance starting at the same time may win; `users_single_admin` keeps it to one.
+    // Only that conflict is skipped. An owner who took the email meanwhile still fails startup.
     await this.db
       .insert(users)
       .values({ email, id: randomUUID(), passwordHash, role: "admin" })
-      .onConflictDoNothing();
+      .onConflictDoNothing({ target: users.role, where: sql`${users.role} = 'admin'` });
   }
 }
 

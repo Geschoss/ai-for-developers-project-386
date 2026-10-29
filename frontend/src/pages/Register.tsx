@@ -235,10 +235,10 @@ const showOutcome = async (
     navigate: (path: string) => void | Promise<void>;
     setFields: (fields: FieldErrors) => void;
     setFormError: (message: string | undefined) => void;
-    setOwner: (owner: Owner) => void;
+    setUser: (owner: Owner) => void;
   },
 ): Promise<void> => {
-  const outcome = await registerOwner(draft, sink.setOwner, sink.navigate);
+  const outcome = await registerOwner(draft, sink.setUser, sink.navigate);
   if (typeof outcome === "string") {
     sink.setFormError(outcome);
     return;
@@ -267,7 +267,7 @@ const Register = (): ReactElement => {
         navigate,
         setFields,
         setFormError,
-        setOwner: session.setUser,
+        setUser: session.setUser,
       });
     } catch {
       setFormError(requestFailed);
