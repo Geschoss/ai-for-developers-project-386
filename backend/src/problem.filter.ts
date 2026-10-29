@@ -10,14 +10,9 @@ import {
 import type { Response } from "express";
 import type { components } from "spec/api";
 
-type ValidationIssue = components["schemas"]["ValidationIssue"];
+import type { ProblemBody } from "./problem.js";
 
-interface ProblemBody {
-  code: string;
-  issues?: ValidationIssue[];
-  status: number;
-  title: string;
-}
+type ValidationIssue = components["schemas"]["ValidationIssue"];
 
 /** Codes for errors that no feature raises itself: framework 404s, validator rejections, crashes. */
 const codeByStatus: Record<number, string> = {
@@ -66,31 +61,78 @@ const validationIssues = (exception: unknown): ValidationIssue[] | undefined => 
   });
 };
 
+/** A problem raised by a feature. Framework errors have no `code` of their own. */
+const problemFromRecord = (body: Record<string, unknown>, status: number): ProblemBody => {
+  const problem: ProblemBody = {
+    code: asString(body["code"]),
+    status,
+    title: STATUS_CODES[status] ?? "Error",
+  };
+  const issues = validationIssues({ errors: body["issues"] });
+  if (issues !== undefined) {
+    problem.issues = issues;
+  }
+  return problem;
+};
+
+const raisedProblem = (exception: unknown): ProblemBody | undefined => {
+  if (!(exception instanceof HttpException)) {
+    return undefined;
+  }
+  const body: unknown = exception.getResponse();
+  if (!isRecord(body) || typeof body["code"] !== "string") {
+    return undefined;
+  }
+  return problemFromRecord(body, exception.getStatus());
+};
+
+const statusFrom = (raised: ProblemBody | undefined, exception: unknown): number => {
+  if (raised === undefined) {
+    return statusOf(exception);
+  }
+  return raised.status;
+};
+
+const attachValidationIssues = (body: ProblemBody, exception: unknown): void => {
+  if (body.status !== 400) {
+    return;
+  }
+  const issues = validationIssues(exception);
+  if (issues !== undefined) {
+    body.issues = issues;
+  }
+};
+
+const problemBody = (exception: unknown): ProblemBody => {
+  const raised = raisedProblem(exception);
+  const status = statusFrom(raised, exception);
+  const body: ProblemBody = raised ?? {
+    code: codeByStatus[status] ?? "internal_error",
+    status,
+    title: STATUS_CODES[status] ?? "Error",
+  };
+  if (raised === undefined) {
+    attachValidationIssues(body, exception);
+  }
+  return body;
+};
+
 /** Renders every error as RFC 9457 `application/problem+json` with a machine-readable `code`. */
 @Catch()
 class ProblemFilter implements ExceptionFilter {
   private readonly logger = new Logger(ProblemFilter.name);
 
   public catch(exception: unknown, host: ArgumentsHost): void {
-    const status = statusOf(exception);
-    if (status >= 500) {
+    const body = problemBody(exception);
+    if (body.status >= 500) {
       this.logger.error(exception);
-    }
-    const problem: ProblemBody = {
-      code: codeByStatus[status] ?? "internal_error",
-      status,
-      title: STATUS_CODES[status] ?? "Error",
-    };
-    const issues = validationIssues(exception);
-    if (status === 400 && issues !== undefined) {
-      problem.issues = issues;
     }
     host
       .switchToHttp()
       .getResponse<Response>()
-      .status(status)
+      .status(body.status)
       .type("application/problem+json")
-      .json(problem);
+      .json(body);
   }
 }
 
