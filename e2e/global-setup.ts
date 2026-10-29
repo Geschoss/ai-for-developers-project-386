@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { PostgreSqlContainer } from "@testcontainers/postgresql";
 
-import { baseURL } from "./playwright.config.ts";
+import { admin, baseURL } from "./playwright.config.ts";
 
 // oxlint-disable-next-line eslint/no-magic-numbers -- poll for at most 30s while the built app boots
 const healthTimeoutMs = 30_000;
@@ -33,7 +33,13 @@ const waitForHealth = async (url: string): Promise<void> => {
 const globalSetup = async (): Promise<() => Promise<void>> => {
   const database = await new PostgreSqlContainer("postgres:18-alpine").start();
   const app = spawn("node", [fileURLToPath(new URL("../backend/dist/main.js", import.meta.url))], {
-    env: { ...process.env, DATABASE_URL: database.getConnectionUri(), PORT: new URL(baseURL).port },
+    env: {
+      ...process.env,
+      ADMIN_EMAIL: admin.email,
+      ADMIN_PASSWORD: admin.password,
+      DATABASE_URL: database.getConnectionUri(),
+      PORT: new URL(baseURL).port,
+    },
     stdio: "inherit",
   });
   await waitForHealth(`${baseURL}/api/health`);

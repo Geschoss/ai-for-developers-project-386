@@ -267,7 +267,7 @@ const Register = (): ReactElement => {
         navigate,
         setFields,
         setFormError,
-        setOwner: session.setOwner,
+        setOwner: session.setUser,
       });
     } catch {
       setFormError(requestFailed);

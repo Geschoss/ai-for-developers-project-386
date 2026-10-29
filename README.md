@@ -31,16 +31,25 @@ pnpm install
 Запуск всего приложения с базой — в Docker, на http://localhost:3000:
 
 ```bash
-docker compose up --build
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=придумайте-пароль docker compose up --build
 ```
 
 Режим разработки: база в Docker, бэкенд и фронтенд с перезагрузкой, фронтенд на http://localhost:5173:
 
 ```bash
 docker compose up -d db
-cp .env.example backend/.env
+cp .env.example backend/.env  # замените ADMIN_PASSWORD на свой
 pnpm dev
 ```
+
+### Администратор
+
+Администратор один. Его создаёт старт приложения из переменных окружения `ADMIN_EMAIL` и `ADMIN_PASSWORD`, если
+в базе Администратора ещё нет. Повторный старт второго не создаёт, даже если переменные изменились: пароль
+существующего Администратора они тоже не меняют. Без любой из двух переменных приложение не стартует и пишет,
+какой не хватает (`ADMIN_EMAIL is not set`). Если `ADMIN_EMAIL` уже занят Владельцем, старт тоже падает с ошибкой.
+
+Учётные данные не коммитьте: в `.env.example` только заглушки. На проде задайте их в переменных окружения сервиса.
 
 Проверки качества кода: `mise run check` (oxlint, oxfmt, tsc, knip, dependency-cruiser). По отдельности: `mise run lint`, `format`, `fix`, `typecheck`, `knip`, `depcruise`. Тесты: `pnpm test` (нужен запущенный Docker), `pnpm e2e`.
 

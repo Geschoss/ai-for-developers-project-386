@@ -3,7 +3,7 @@ import { check, integer, pgTable, text, timestamp, uniqueIndex, uuid } from "dri
 
 /**
  * Пользователи. Роль `owner` — Владелец с календарём; роль `admin` — Администратор без календаря.
- * Администратора создаёт отдельная задача, регистрация его не создаёт.
+ * Администратор один: его создаёт старт приложения, регистрация его не создаёт.
  */
 const users = pgTable(
   "users",
@@ -22,6 +22,9 @@ const users = pgTable(
   (table) => [
     uniqueIndex("users_email_unique").on(sql`lower(${table.email})`),
     uniqueIndex("users_calendar_slug_unique").on(table.calendarSlug),
+    uniqueIndex("users_single_admin")
+      .on(table.role)
+      .where(sql`${table.role} = 'admin'`),
     check(
       "users_role_shape",
       sql`(

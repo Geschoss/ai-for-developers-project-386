@@ -55,13 +55,34 @@ const OwnerBar = ({
   );
 };
 
-/** Header of a logged-in owner. Absent for everyone else. */
-const OwnerHeader = (): ReactElement => {
-  const session = useSession();
-  if (session.owner === undefined) {
+const AdminBar = ({ onLogout }: { onLogout: () => Promise<void> }): ReactElement => (
+  <Container component="header" size="lg" py="sm">
+    <Group justify="space-between">
+      <Anchor component={Link} to="/admin/users">
+        Пользователи
+      </Anchor>
+      <Button
+        variant="subtle"
+        onClick={() => {
+          forget(onLogout());
+        }}
+      >
+        Выйти
+      </Button>
+    </Group>
+  </Container>
+);
+
+/** Header of a logged-in user, by role. Absent for an anonymous visitor. */
+const Header = (): ReactElement => {
+  const { logout, user } = useSession();
+  if (user === undefined) {
     return <></>;
   }
-  return <OwnerBar owner={session.owner} onLogout={session.logout} />;
+  if (user.role === "admin") {
+    return <AdminBar onLogout={logout} />;
+  }
+  return <OwnerBar owner={user} onLogout={logout} />;
 };
 
-export { OwnerHeader };
+export { Header };
