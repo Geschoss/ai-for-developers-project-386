@@ -1,5 +1,6 @@
 import request from "supertest";
 import { describe, it } from "vitest";
+
 import { contractApp, session } from "./app.ts";
 
 const app = contractApp();
@@ -30,7 +31,10 @@ describe("listSlots", () => {
 });
 
 describe("createBooking", () => {
-  const booking = { startAt: "2026-11-02T06:00:00Z", guest: { name: "Борис", email: "boris@example.com" } };
+  const booking = {
+    guest: { email: "boris@example.com", name: "Борис" },
+    startAt: "2026-11-02T06:00:00Z",
+  };
 
   it("needs no session", async () => {
     await request(app).post("/api/calendars/anna-01/bookings").send(booking).expect(200);

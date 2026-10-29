@@ -1,47 +1,57 @@
 import { fileURLToPath } from "node:url";
-import { Inject, Module, type OnApplicationShutdown, type OnModuleInit } from "@nestjs/common";
-import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
+
+import { type OnApplicationShutdown, type OnModuleInit, Inject, Module } from "@nestjs/common";
+import { type NodePgDatabase, drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
-import pg from "pg";
+import { Pool } from "pg";
+
 import { APP_OPTIONS, type AppOptions } from "../app-options.js";
+// oxlint-disable-next-line import/no-namespace -- Drizzle's relational client takes the schema module namespace
 import * as schema from "./schema.js";
 
-export type Database = NodePgDatabase<typeof schema>;
+type Database = NodePgDatabase<typeof schema>;
 
 /** Injection token for the Drizzle instance. */
-export const DATABASE = Symbol("DATABASE");
+const DATABASE = Symbol("DATABASE");
 
 const POOL = Symbol("POOL");
 
 const migrationsFolder = fileURLToPath(new URL("../../drizzle", import.meta.url));
 
+const createPool = (options: AppOptions): Pool =>
+  new Pool({ connectionString: options.databaseUrl });
+
+const createDatabase = (pool: Pool): Database => drizzle(pool, { schema });
+
 @Module({
+  exports: [DATABASE],
   providers: [
     {
-      provide: POOL,
       inject: [APP_OPTIONS],
-      useFactory: (options: AppOptions) => new pg.Pool({ connectionString: options.databaseUrl }),
+      provide: POOL,
+      useFactory: createPool,
     },
     {
-      provide: DATABASE,
       inject: [POOL],
-      useFactory: (pool: pg.Pool): Database => drizzle(pool, { schema }),
+      provide: DATABASE,
+      useFactory: createDatabase,
     },
   ],
-  exports: [DATABASE],
 })
-export class DatabaseModule implements OnModuleInit, OnApplicationShutdown {
-  constructor(
-    @Inject(POOL) private readonly pool: pg.Pool,
+class DatabaseModule implements OnModuleInit, OnApplicationShutdown {
+  public constructor(
+    @Inject(POOL) private readonly pool: Pool,
     @Inject(DATABASE) private readonly db: Database,
   ) {}
 
   /** Brings the schema up to date before the app takes requests. */
-  async onModuleInit() {
+  public async onModuleInit(): Promise<void> {
     await migrate(this.db, { migrationsFolder });
   }
 
-  async onApplicationShutdown() {
+  public async onApplicationShutdown(): Promise<void> {
     await this.pool.end();
   }
 }
+
+export { DATABASE, DatabaseModule, type Database };

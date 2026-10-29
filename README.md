@@ -1,6 +1,5 @@
 # Календарь звонков
 
-
 [![hexlet-check](https://github.com/Geschoss/ai-for-developers-project-386/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/Geschoss/ai-for-developers-project-386/actions)
 
 Разработайте совместно с ИИ сервис для бронирования календаря
@@ -27,6 +26,8 @@ mise install
 pnpm install
 ```
 
+`mise install` ставит git-хук pre-commit. Хук проверяет oxlint и формат только у файлов в индексе и ничего не исправляет.
+
 Запуск всего приложения с базой — в Docker, на http://localhost:3000:
 
 ```bash
@@ -41,7 +42,7 @@ cp .env.example backend/.env
 pnpm dev
 ```
 
-Проверки: `pnpm typecheck`, `pnpm test` (нужен запущенный Docker), `pnpm e2e`.
+Проверки качества кода: `mise run check` (oxlint, oxfmt, tsc, knip, dependency-cruiser). По отдельности: `mise run lint`, `format`, `fix`, `typecheck`, `knip`, `depcruise`. Тесты: `pnpm test` (нужен запущенный Docker), `pnpm e2e`.
 
 ## Использование
 

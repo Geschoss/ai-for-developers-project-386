@@ -1,23 +1,30 @@
 import request from "supertest";
-import { describe, expect, it } from "vitest";
+import { describe, it } from "vitest";
+
 import { contractApp } from "./app.ts";
 
-const app = contractApp();
-
-const registration = {
-  name: "Анна",
-  email: "anna@example.com",
-  password: "long-enough",
-  calendarSlug: "anna-01",
-  timeZone: "Europe/Moscow",
-};
+const app = contractApp(),
+  registration = {
+    calendarSlug: "anna-01",
+    email: "anna@example.com",
+    name: "Анна",
+    password: "long-enough",
+    timeZone: "Europe/Moscow",
+  };
 
 describe("registerOwner", () => {
   it("passes a valid registration", async () => {
     await request(app).post("/api/auth/register").send(registration).expect(200);
   });
 
-  it.each(["ab", "a".repeat(31), "Anna", "anna_01", "анна"])("rejects calendar slug %j", async (calendarSlug) => {
+  it.each([
+    "ab",
+    // oxlint-disable-next-line eslint/no-magic-numbers -- one character past the contract's 30-character slug maximum
+    "a".repeat(31),
+    "Anna",
+    "anna_01",
+    "анна",
+  ])("rejects calendar slug %j", async (calendarSlug) => {
     await request(app)
       .post("/api/auth/register")
       .send({ ...registration, calendarSlug })

@@ -1,11 +1,15 @@
 import { defineConfig, devices } from "@playwright/test";
 
-export const baseURL = "http://localhost:3100";
+const baseURL = "http://localhost:3100";
+const desktopChrome = devices["Desktop Chrome"];
 
-export default defineConfig({
+const config = defineConfig({
+  globalSetup: "./global-setup.ts",
+  projects: [{ name: "chromium", use: { ...desktopChrome } }],
   testDir: "tests",
   // Starts Postgres and the built app (`pnpm e2e` builds it first).
-  globalSetup: "./global-setup.ts",
   use: { baseURL, trace: "retain-on-failure" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });
+
+export { baseURL };
+export default config;
