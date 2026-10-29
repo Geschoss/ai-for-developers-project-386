@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 # Staged files only. Checks, never autofixes: oxlint without --fix, oxfmt --check.
+# mise joins $STAGED on spaces, so a path with a space would be split. The index
+# is the same set, read as NUL-separated paths.
 set -euo pipefail
-
-if [[ -z "${STAGED:-}" ]]; then
-  exit 0
-fi
 
 lint_files=()
 fmt_files=()
 
-for file in ${STAGED}; do
+while IFS= read -r -d '' file; do
   if [[ ! -f "${file}" ]]; then
     continue
   fi
@@ -17,7 +15,10 @@ for file in ${STAGED}; do
     spec/openapi.yaml | spec/api.d.ts | pnpm-lock.yaml | .github/workflows/hexlet-check.yml)
       continue
       ;;
-    backend/drizzle/* | backend/drizzle/*/* | .agents/* | .claude/* | dist/* | */dist/*)
+    backend/drizzle | backend/drizzle/* | .agents | .agents/* | .claude | .claude/*)
+      continue
+      ;;
+    dist | dist/* | */dist | */dist/* | node_modules | node_modules/* | */node_modules | */node_modules/*)
       continue
       ;;
   esac
@@ -30,7 +31,7 @@ for file in ${STAGED}; do
       fmt_files+=("${file}")
       ;;
   esac
-done
+done < <(git diff-index --cached --name-only -z HEAD)
 
 if ((${#lint_files[@]} > 0)); then
   pnpm exec oxlint --deny-warnings "${lint_files[@]}"
