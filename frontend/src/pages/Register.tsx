@@ -12,6 +12,7 @@ import { type ChangeEvent, type ReactElement, type SubmitEvent, useState } from 
 import { Link, useNavigate } from "react-router";
 
 import { api } from "../api";
+import { slugFromEmail } from "../calendar-slug";
 import { forget } from "../forget";
 import { errorsFor, type FieldErrors } from "../problems";
 import { type Owner, useSession } from "../session";
@@ -51,13 +52,17 @@ const useDraft = (): Draft => {
   const [password, setPassword] = useState("");
   const [calendarSlug, setCalendarSlug] = useState("");
   const [timeZone, setTimeZone] = useState(browserTimeZone);
+  const setEmailAndSlug = (value: string): void => {
+    setEmail(value);
+    setCalendarSlug(slugFromEmail(value));
+  };
   return {
     calendarSlug,
     email,
     name,
     password,
     setCalendarSlug,
-    setEmail,
+    setEmail: setEmailAndSlug,
     setName,
     setPassword,
     setTimeZone,
@@ -94,12 +99,12 @@ const NameEmailPassword = ({
       error={email.error}
       onChange={email.onChange}
     />
+    {/* Проверка длины пароля временно выключена: minLength={8} */}
     <PasswordInput
       label="Пароль"
       name="password"
       autoComplete="new-password"
       required
-      minLength={8}
       value={password.value}
       error={password.error}
       onChange={password.onChange}

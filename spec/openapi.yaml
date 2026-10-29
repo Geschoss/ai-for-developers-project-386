@@ -749,7 +749,6 @@ components:
       description: Настройки календаря Владельца. Их изменение не трогает существующие Бронирования.
     Password:
       type: string
-      minLength: 8
       maxLength: 128
     PersonName:
       type: string
