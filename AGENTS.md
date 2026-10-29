@@ -53,6 +53,9 @@ Both files are read-only: change the `.tsp`, run `pnpm spec:build`, commit the o
 runs `pnpm spec:check` and fails on any drift. NestJS has no TypeSpec server generator, so the backend uses the
 shared types and the request validator instead of generated controllers.
 
+release-please owns `CHANGELOG.md`, `.release-please-manifest.json` and the `version` in `package.json`; it rewrites
+them in its release PR (see Commits).
+
 ## Commits
 
 Every commit names its ticket, and its type in [Conventional Commits](https://www.conventionalcommits.org/) form,
