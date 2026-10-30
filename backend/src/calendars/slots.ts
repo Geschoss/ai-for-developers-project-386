@@ -119,6 +119,31 @@ const slotStart = (formatter: Intl.DateTimeFormat, date: CivilDate, index: numbe
 
 const lastSlotIndex = slotsPerDay - 1;
 
+const utcMidnight = (date: CivilDate): number => Date.UTC(date.year, date.month - 1, date.day);
+
+/** `date` is on `earliest` or a later civil day. */
+const notBefore = (date: CivilDate, earliest: CivilDate): boolean =>
+  utcMidnight(date) >= utcMidnight(earliest);
+
+interface HorizonCheck {
+  now: Date;
+  planningHorizonDays: number;
+  start: Date;
+  timeZone: string;
+}
+
+/**
+ * True when `start` falls on today in `timeZone` or on one of the following days, `planningHorizonDays` in all.
+ * Today counts. The day after the horizon does not.
+ */
+const withinPlanningHorizon = (check: HorizonCheck): boolean => {
+  const formatter = formatterFor(check.timeZone);
+  const today = civilFrom(formatter, check.now);
+  const slotDay = civilFrom(formatter, check.start);
+  const last = addDays(today, check.planningHorizonDays - 1);
+  return notBefore(slotDay, today) && notBefore(last, slotDay);
+};
+
 const onOwnerGrid = (minuteOfDay: number): boolean => {
   const lastStart = firstSlotMinutes + lastSlotIndex * slotLengthMinutes;
   if (minuteOfDay < firstSlotMinutes || minuteOfDay > lastStart) {
@@ -168,4 +193,4 @@ const bookableSlots = (query: SlotQuery): Date[] => {
   return starts;
 };
 
-export { bookableSlots, isSlotStart };
+export { bookableSlots, isSlotStart, withinPlanningHorizon };

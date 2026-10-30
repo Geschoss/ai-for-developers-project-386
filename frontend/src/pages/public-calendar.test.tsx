@@ -46,7 +46,8 @@ const urlOf = (input: RequestInfo | URL): string => {
 };
 
 let listed = slots;
-let booking: "created" | "taken" = "created";
+let booking: "created" | "horizon" | "own" | "past" | "taken" = "created";
+let viewer: "guest" | "other" | "owner" = "guest";
 
 const bothBooked = {
   slots: [
@@ -68,12 +69,49 @@ const methodOf = (input: RequestInfo | URL): string => {
   return "GET";
 };
 
+const rejectedBooking = (code: string): Response => {
+  listed = bothBooked;
+  return problem(422, { code, status: 422, title: "Unprocessable Entity" });
+};
+
+const refusalByOutcome: Record<string, string | undefined> = {
+  horizon: "outside_planning_horizon",
+  own: "own_calendar",
+  past: "slot_in_past",
+};
+
+const refusalCode = (): string | undefined => refusalByOutcome[booking];
+
 const bookingResponse = (): Response => {
+  const code = refusalCode();
+  if (code !== undefined) {
+    return rejectedBooking(code);
+  }
   listed = bothBooked;
   if (booking === "taken") {
     return problem(409, { code: "slot_taken", status: 409, title: "Conflict" });
   }
   return json(201, confirmation);
+};
+
+const viewerSlug = (): string => {
+  if (viewer === "owner") {
+    return "anna";
+  }
+  return "boris";
+};
+
+const currentUser = (): Response => {
+  if (viewer === "guest") {
+    return problem(401, { code: "unauthenticated", status: 401, title: "Unauthorized" });
+  }
+  return json(200, {
+    calendarSlug: viewerSlug(),
+    email: "anna@example.com",
+    name: "Анна",
+    role: "owner",
+    timeZone: "Europe/Moscow",
+  });
 };
 
 const calendarResponse = (url: string): Response => {
@@ -89,7 +127,7 @@ const calendarResponse = (url: string): Response => {
 const fetchCalendar = (input: RequestInfo | URL): Response => {
   const url = urlOf(input);
   if (url.includes("/api/auth/me")) {
-    return problem(401, { code: "unauthenticated", status: 401, title: "Unauthorized" });
+    return currentUser();
   }
   if (methodOf(input) === "POST" && url.includes("/bookings")) {
     return bookingResponse();
@@ -109,6 +147,7 @@ const resetGuest = (): void => {
   guest.timeZone = "Europe/Moscow";
   listed = slots;
   booking = "created";
+  viewer = "guest";
   vi.stubGlobal("fetch", async (input: RequestInfo | URL): Promise<Response> => {
     const response = await Promise.resolve(fetchCalendar(input));
     return response;
@@ -218,5 +257,44 @@ describe("booking a Слот", () => {
     expect(screen.queryByText("Свободно")).not.toBeInTheDocument();
     expect(screen.getAllByText("Занято")).toHaveLength(bookedOnTheDay);
     expect(screen.getByRole("button", { name: /^2 ноября, свободно 0$/u })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["past", "Этот слот уже начался или прошёл"],
+    ["horizon", "Этот слот за Горизонтом планирования"],
+    ["own", "Свой календарь бронировать нельзя"],
+  ] as const)("shows the Russian text for %s", async (outcome, text) => {
+    booking = outcome;
+    renderAt("/u/anna");
+    fireEvent.click(await screen.findByRole("button", { name: /^2 ноября/u }));
+    bookFirstSlot(/09:00–09:30/u);
+
+    expect(await screen.findByText(text)).toBeInTheDocument();
+  });
+});
+
+describe("the Владелец on a public page", () => {
+  beforeEach(resetGuest);
+
+  it("says their own calendar cannot be booked and hides the form", async () => {
+    viewer = "owner";
+    renderAt("/u/anna");
+
+    expect(await screen.findByText("Свой календарь бронировать нельзя")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^2 ноября/u }));
+    fireEvent.click(screen.getByRole("button", { name: /09:00–09:30/u }));
+
+    expect(screen.queryByRole("button", { name: "Забронировать" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Имя", { exact: false })).not.toBeInTheDocument();
+  });
+
+  it("still offers the form on someone else's calendar", async () => {
+    viewer = "other";
+    renderAt("/u/anna");
+    fireEvent.click(await screen.findByRole("button", { name: /^2 ноября/u }));
+    fireEvent.click(screen.getByRole("button", { name: /09:00–09:30/u }));
+
+    expect(screen.getByRole("button", { name: "Забронировать" })).toBeInTheDocument();
+    expect(screen.queryByText("Свой календарь бронировать нельзя")).not.toBeInTheDocument();
   });
 });

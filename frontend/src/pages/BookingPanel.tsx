@@ -175,6 +175,7 @@ interface DayView {
   group: DayGroup | undefined;
   guestTimeZone: string;
   onEmail: (value: string) => void;
+  ownCalendar: boolean;
   onName: (value: string) => void;
   onSelect: (startAt: string) => void;
   onSubmit: (event: SubmitEvent<HTMLFormElement>) => void;
@@ -203,7 +204,7 @@ const DayBody = (props: DayView): ReactElement => {
         draft={props.draft}
         fields={props.fields}
         pending={props.pending}
-        shown={slotIsFree(props.group, props.slotStart)}
+        shown={slotIsFree(props.group, props.slotStart) && !props.ownCalendar}
         onEmail={props.onEmail}
         onName={props.onName}
         onSubmit={props.onSubmit}
@@ -220,6 +221,7 @@ interface PanelProps {
   group: DayGroup | undefined;
   guestTimeZone: string;
   onRefresh: () => Promise<void>;
+  ownCalendar: boolean;
 }
 
 /** The day's Слоты, the name and email form, and the «Вы записаны» screen. */
@@ -251,6 +253,7 @@ const BookingPanel = (props: PanelProps): ReactElement => {
         formError={formError}
         group={props.group}
         guestTimeZone={props.guestTimeZone}
+        ownCalendar={props.ownCalendar}
         pending={pending}
         slotStart={slotStart}
         onEmail={(email) => {

@@ -1,6 +1,8 @@
-import { Body, Controller, Get, HttpCode, Inject, Param, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Inject, Param, Post, Query, Req } from "@nestjs/common";
+import type { Request } from "express";
 import type { components } from "spec/api";
 
+import { sessionIdFrom } from "../accounts/session-cookie.js";
 import { CalendarsService } from "./calendars.service.js";
 
 type BookingConfirmation = components["schemas"]["BookingConfirmation"];
@@ -23,8 +25,13 @@ export class CalendarsController {
   public async createBooking(
     @Param("calendarSlug") calendarSlug: string,
     @Body() booking: BookingRequest,
+    @Req() request: Request,
   ): Promise<BookingConfirmation> {
-    const confirmation = await this.calendars.createBooking(calendarSlug, booking);
+    const confirmation = await this.calendars.createBooking(
+      calendarSlug,
+      booking,
+      sessionIdFrom(request),
+    );
     return confirmation;
   }
 
