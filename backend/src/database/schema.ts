@@ -55,4 +55,23 @@ const sessions = pgTable("sessions", {
     .references(() => users.id, { onDelete: "cascade" }),
 });
 
-export { sessions, users };
+/**
+ * Бронирование. Уникальный индекс не даёт двум Гостям занять один Слот (ADR-0003).
+ * Список Слотов читает только `start_at`: имя и email Гостя наружу не отдаются.
+ */
+const bookings = pgTable(
+  "bookings",
+  {
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true }).notNull().defaultNow(),
+    guestEmail: text("guest_email").notNull(),
+    guestName: text("guest_name").notNull(),
+    id: uuid("id").primaryKey(),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    startAt: timestamp("start_at", { mode: "date", withTimezone: true }).notNull(),
+  },
+  (table) => [uniqueIndex("bookings_owner_start_unique").on(table.ownerId, table.startAt)],
+);
+
+export { bookings, sessions, users };

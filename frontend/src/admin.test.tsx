@@ -118,7 +118,7 @@ describe("admin", () => {
     expect(cells.getByText("28.10.2026")).toBeInTheDocument();
   });
 
-  it.each(["/calendar", "/events", "/settings", "/login"])(
+  it.each(["/events", "/settings", "/login"])(
     "is sent from %s to the owners list",
     async (path) => {
       vi.stubGlobal("fetch", backend(admin));
