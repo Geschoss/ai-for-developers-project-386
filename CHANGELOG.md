@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.2.0...v0.3.0) (2026-10-30)
+
+
+### Features
+
+* **owner:** let a Владелец change calendar settings ([#29](https://github.com/Geschoss/ai-for-developers-project-386/issues/29)) ([cf12b7a](https://github.com/Geschoss/ai-for-developers-project-386/commit/cf12b7acae95901283b96084957aac4bd56be74a))
+
 ## [0.2.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.1.0...v0.2.0) (2026-10-30)
 
 
