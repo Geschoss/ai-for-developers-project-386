@@ -7,6 +7,7 @@ import type { components } from "spec/api";
 import { DATABASE, type Database } from "../database/database.module.js";
 import { sessions, users } from "../database/schema.js";
 import { problem } from "../problem.js";
+import { assertKnownTimeZone } from "../time-zone.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
 import { sessionExpiresAt } from "./session-cookie.js";
 
@@ -19,18 +20,6 @@ type OwnerRegistration = components["schemas"]["OwnerRegistration"];
 const defaultPlanningHorizonDays = 14;
 // oxlint-disable-next-line eslint/no-magic-numbers -- spec: a new owner gets a daily booking limit of 2
 const defaultDailyBookingLimit = 2;
-
-const knownTimeZones = new Set(Intl.supportedValuesOf("timeZone"));
-
-/** `supportedValuesOf` omits `UTC`, which `Intl` still accepts. GitHub Actions runs in that zone. */
-const acceptsTimeZone = (timeZone: string): boolean => {
-  try {
-    const formatted = new Intl.DateTimeFormat("en", { timeZone }).format();
-    return formatted.length > 0;
-  } catch {
-    return false;
-  }
-};
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -46,15 +35,6 @@ const conflictCode = (error: unknown): "email_taken" | "slug_taken" | undefined 
     return "slug_taken";
   }
   return undefined;
-};
-
-const assertKnownTimeZone = (timeZone: string): void => {
-  if (knownTimeZones.has(timeZone) || acceptsTimeZone(timeZone)) {
-    return;
-  }
-  throw problem(400, "validation_failed", [
-    { message: "Unknown time zone", path: "/body/timeZone" },
-  ]);
 };
 
 const rethrowConflict = (error: unknown): void => {

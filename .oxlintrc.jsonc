@@ -74,6 +74,8 @@
           "Optional",
           "POST",
           "Post",
+          "PUT",
+          "Put",
           "Req",
           "Res",
         ],

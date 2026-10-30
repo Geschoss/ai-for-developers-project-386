@@ -5,6 +5,7 @@ import { AdminModule } from "./admin/admin.module.js";
 import { APP_OPTIONS, type AppOptions, AppOptionsModule } from "./app-options.js";
 import { DatabaseModule } from "./database/database.module.js";
 import { HealthController } from "./health/health.controller.js";
+import { OwnerModule } from "./owner/owner.module.js";
 
 @Module({})
 class AppModule {
@@ -17,7 +18,7 @@ class AppModule {
     };
     return {
       controllers: [HealthController],
-      imports: [optionsModule, DatabaseModule, AccountsModule, AdminModule],
+      imports: [optionsModule, DatabaseModule, AccountsModule, AdminModule, OwnerModule],
       module: AppModule,
     };
   }

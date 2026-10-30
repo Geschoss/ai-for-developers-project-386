@@ -1,8 +1,10 @@
 interface FieldErrors {
   calendarSlug?: string;
+  dailyBookingLimit?: string;
   email?: string;
   name?: string;
   password?: string;
+  planningHorizonDays?: string;
   timeZone?: string;
 }
 
@@ -13,9 +15,11 @@ interface ShownErrors {
 
 const messageByPath: Record<keyof FieldErrors, string> = {
   calendarSlug: "Адрес календаря: от 3 до 30 символов, строчные латинские буквы, цифры и дефис",
+  dailyBookingLimit: "Лимит бронирований — целое число от 1 до 18",
   email: "Укажите корректный email",
   name: "Укажите имя",
   password: "Пароль должен быть не короче 8 символов",
+  planningHorizonDays: "Горизонт планирования — целое число от 1 до 60",
   timeZone: "Выберите часовой пояс из списка",
 };
 
@@ -23,9 +27,11 @@ const requestFailed = "Не удалось выполнить запрос";
 
 const fieldByPath: Record<string, keyof FieldErrors | undefined> = {
   "/body/calendarSlug": "calendarSlug",
+  "/body/dailyBookingLimit": "dailyBookingLimit",
   "/body/email": "email",
   "/body/name": "name",
   "/body/password": "password",
+  "/body/planningHorizonDays": "planningHorizonDays",
   "/body/timeZone": "timeZone",
 };
 
@@ -92,4 +98,4 @@ const errorsFor = (error: unknown): ShownErrors => {
   return validationOrFallback(code, error);
 };
 
-export { errorsFor, type FieldErrors };
+export { errorsFor, type FieldErrors, messageByPath };

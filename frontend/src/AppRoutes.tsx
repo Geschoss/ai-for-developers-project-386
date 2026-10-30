@@ -6,6 +6,7 @@ import { Landing } from "./pages/Landing";
 import { Login } from "./pages/Login";
 import { Placeholder } from "./pages/Placeholder";
 import { Register } from "./pages/Register";
+import { Settings } from "./pages/Settings";
 import { RequireAnonymous, RequireRole } from "./session";
 
 const anonymousPage = (page: ReactElement): ReactElement => (
@@ -26,7 +27,14 @@ const AppRoutes = (): ReactElement => (
     <Route path="/login" element={anonymousPage(<Login />)} />
     <Route path="/calendar" element={ownerPage("Мой календарь")} />
     <Route path="/events" element={ownerPage("Предстоящие события")} />
-    <Route path="/settings" element={ownerPage("Настройки")} />
+    <Route
+      path="/settings"
+      element={
+        <RequireRole role="owner">
+          <Settings />
+        </RequireRole>
+      }
+    />
     <Route
       path="/admin/users"
       element={
