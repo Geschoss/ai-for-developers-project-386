@@ -29,6 +29,8 @@ const fieldByPath: Record<string, keyof FieldErrors | undefined> = {
   "/body/calendarSlug": "calendarSlug",
   "/body/dailyBookingLimit": "dailyBookingLimit",
   "/body/email": "email",
+  "/body/guest/email": "email",
+  "/body/guest/name": "name",
   "/body/name": "name",
   "/body/password": "password",
   "/body/planningHorizonDays": "planningHorizonDays",
@@ -94,6 +96,9 @@ const errorsFor = (error: unknown): ShownErrors => {
   }
   if (code === "invalid_credentials") {
     return { fields: {}, form: "Неверный email или пароль" };
+  }
+  if (code === "slot_taken") {
+    return { fields: {}, form: "Этот слот уже занят" };
   }
   return validationOrFallback(code, error);
 };

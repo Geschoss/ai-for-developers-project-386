@@ -1,29 +1,15 @@
-import { Alert, Card, Group, SimpleGrid, Stack, Text, Title } from "@mantine/core";
+import { Alert, SimpleGrid, Stack, Title } from "@mantine/core";
 import { type ReactElement, useState } from "react";
 import type { components } from "spec/api";
 
+import { BookingPanel } from "./BookingPanel";
 import { horizonGuestKeys, withHorizonDays } from "./horizon";
 import { monthOfKey, type YearMonth } from "./month-grid";
 import { MonthCard } from "./MonthCard";
-import { dayKey, dayLabel, type DayGroup, groupByDay, slotRange, zoneBanner } from "./slot-time";
+import { dayKey, type DayGroup, groupByDay, zoneBanner } from "./slot-time";
 
 type PublicCalendar = components["schemas"]["PublicCalendar"];
 type Slot = components["schemas"]["Slot"];
-
-const statusText = (status: Slot["status"]): string => {
-  if (status === "free") {
-    return "Свободно";
-  }
-  return "Занято";
-};
-
-const StatusText = ({ status }: { status: Slot["status"] }): ReactElement => {
-  const label = statusText(status);
-  if (status === "booked") {
-    return <Text c="dimmed">{label}</Text>;
-  }
-  return <Text>{label}</Text>;
-};
 
 const ZoneAlert = ({ banner }: { banner: string | undefined }): ReactElement => {
   if (banner === undefined) {
@@ -110,49 +96,28 @@ const bannerSample = (
   return firstStart(slots);
 };
 
-const SlotList = ({
-  group,
-  guestTimeZone,
-  selected,
-}: {
-  group: DayGroup | undefined;
-  guestTimeZone: string;
-  selected: string | undefined;
-}): ReactElement => {
-  if (selected === undefined || group === undefined) {
-    return <Text c="dimmed">Выберите дату в календаре.</Text>;
-  }
-  return (
-    <Stack gap="xs">
-      <Text>{dayLabel(selected)}</Text>
-      {group.slots.map((slot) => (
-        <Group key={slot.startAt} justify="space-between">
-          <Text>{slotRange(slot.startAt, guestTimeZone)}</Text>
-          <StatusText status={slot.status} />
-        </Group>
-      ))}
-    </Stack>
-  );
-};
-
-/** Month of bookable days and the Слоты of the day the Гость picked. Booking itself is a later task. */
+/** Month of bookable days. A chosen free Слот takes a name and email, then shows «Вы записаны». */
 const SlotBoard = ({
   calendar,
+  calendarSlug,
   guestTimeZone,
+  onRefresh,
   slots,
 }: {
   calendar: PublicCalendar;
+  calendarSlug: string;
   guestTimeZone: string;
+  onRefresh: () => Promise<void>;
   slots: readonly Slot[];
 }): ReactElement => {
   const { bounds, groups, opened } = boardDays(calendar, guestTimeZone, slots);
   const [month, setMonth] = useState(opened);
-  const [selected, setSelected] = useState<string>();
+  const [day, setDay] = useState<string>();
   const banner = zoneBanner({
     guestTimeZone,
     now: new Date(),
     ownerTimeZone: calendar.timeZone,
-    sampleStart: bannerSample(groups, selected, slots),
+    sampleStart: bannerSample(groups, day, slots),
   });
 
   return (
@@ -166,19 +131,17 @@ const SlotBoard = ({
           latest={bounds.latest}
           month={month}
           onMonth={setMonth}
-          onSelect={setSelected}
-          selected={selected}
+          onSelect={setDay}
+          selected={day}
         />
-        <Card withBorder padding="md">
-          <Text fw={600} mb="sm">
-            Статус слотов
-          </Text>
-          <SlotList
-            group={groupFor(groups, selected)}
-            guestTimeZone={guestTimeZone}
-            selected={selected}
-          />
-        </Card>
+        <BookingPanel
+          key={day}
+          calendarSlug={calendarSlug}
+          day={day}
+          group={groupFor(groups, day)}
+          guestTimeZone={guestTimeZone}
+          onRefresh={onRefresh}
+        />
       </SimpleGrid>
     </Stack>
   );

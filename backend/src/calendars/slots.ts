@@ -117,6 +117,35 @@ const slotStart = (formatter: Intl.DateTimeFormat, date: CivilDate, index: numbe
   });
 };
 
+const lastSlotIndex = slotsPerDay - 1;
+
+const onOwnerGrid = (minuteOfDay: number): boolean => {
+  const lastStart = firstSlotMinutes + lastSlotIndex * slotLengthMinutes;
+  if (minuteOfDay < firstSlotMinutes || minuteOfDay > lastStart) {
+    return false;
+  }
+  return (minuteOfDay - firstSlotMinutes) % slotLengthMinutes === 0;
+};
+
+/** True when `instant` is exactly 09:00, 09:30, … or 17:30 in `timeZone`. */
+const isSlotStart = (instant: Date, timeZone: string): boolean => {
+  if (Number.isNaN(instant.getTime()) || instant.getUTCMilliseconds() !== 0) {
+    return false;
+  }
+  const formatter = formatterFor(timeZone);
+  const clock = wallClock(formatter, instant);
+  const minuteOfDay = clock.hour * minutesPerHour + clock.minute;
+  if (clock.second !== 0 || !onOwnerGrid(minuteOfDay)) {
+    return false;
+  }
+  const canonical = zonedLocalToUtc(formatter, {
+    date: { day: clock.day, month: clock.month, year: clock.year },
+    hour: clock.hour,
+    minute: clock.minute,
+  });
+  return canonical.getTime() === instant.getTime();
+};
+
 const offered = (start: Date, query: SlotQuery): boolean => {
   const time = start.getTime();
   return time > query.now.getTime() && time >= query.from.getTime() && time < query.to.getTime();
@@ -139,4 +168,4 @@ const bookableSlots = (query: SlotQuery): Date[] => {
   return starts;
 };
 
-export { bookableSlots };
+export { bookableSlots, isSlotStart };
