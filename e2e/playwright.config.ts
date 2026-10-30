@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = "http://localhost:3100";
+/** The Администратор the app creates at startup. A throwaway account in a throwaway database. */
+const admin = { email: "admin@example.com", password: "e2e-admin-password" };
 const desktopChrome = devices["Desktop Chrome"];
 
 const config = defineConfig({
@@ -12,5 +14,5 @@ const config = defineConfig({
   use: { baseURL, timezoneId: "UTC", trace: "retain-on-failure" },
 });
 
-export { baseURL };
+export { admin, baseURL };
 export default config;

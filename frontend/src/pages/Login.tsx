@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router";
 import { api } from "../api";
 import { forget } from "../forget";
 import { errorsFor, type FieldErrors } from "../problems";
-import { type Owner, useSession } from "../session";
+import { homeOf, type User, useSession } from "../session";
 import { FormAlert } from "./FormAlert";
 
 const requestFailed = "Не удалось выполнить запрос";
@@ -68,16 +68,19 @@ const LoginForm = ({
   </Container>
 );
 
+/** On success publishes the user and opens their start page: events for an owner, the owners list for the admin. */
 const sendLogin = async (input: {
   email: string;
+  navigate: (path: string) => void | Promise<void>;
   password: string;
-  setOwner: (owner: Owner) => void;
+  setUser: (user: User) => void;
 }): Promise<FieldErrors | string | undefined> => {
   const result = await api.POST("/api/auth/login", {
     body: { email: input.email, password: input.password },
   });
-  if (result.data !== undefined && result.data.role === "owner") {
-    input.setOwner(result.data);
+  if (result.data !== undefined) {
+    input.setUser(result.data);
+    await input.navigate(homeOf(result.data));
     return undefined;
   }
   const shown = errorsFor(result.error);
@@ -87,23 +90,20 @@ const sendLogin = async (input: {
   return shown.fields;
 };
 
-const finishLogin = async (
+const showLoginErrors = (
   outcome: FieldErrors | string | undefined,
   report: {
-    navigate: (path: string) => void | Promise<void>;
     setFields: (fields: FieldErrors) => void;
     setFormError: (message: string | undefined) => void;
   },
-): Promise<void> => {
+): void => {
   if (typeof outcome === "string") {
     report.setFormError(outcome);
     return;
   }
   if (outcome !== undefined) {
     report.setFields(outcome);
-    return;
   }
-  await report.navigate("/events");
 };
 
 const useLoginForm = (): LoginFields => {
@@ -121,8 +121,7 @@ const useLoginForm = (): LoginFields => {
     setFields({});
     setFormError(undefined);
     try {
-      await finishLogin(await sendLogin({ email, password, setOwner: session.setOwner }), {
-        navigate,
+      showLoginErrors(await sendLogin({ email, navigate, password, setUser: session.setUser }), {
         setFields,
         setFormError,
       });

@@ -1,7 +1,3 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
 import type { INestApplication } from "@nestjs/common";
 import { type StartedPostgreSqlContainer, PostgreSqlContainer } from "@testcontainers/postgresql";
 import { Client } from "pg";
@@ -9,6 +5,7 @@ import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createApp } from "../src/app.js";
+import { testAppOptions } from "./app-options.js";
 import { expectMatchesSpec } from "./contract.js";
 
 // oxlint-disable-next-line unicorn/no-useless-undefined -- initializer so TypeScript treats the binding as assigned before beforeAll
@@ -37,9 +34,7 @@ const runningApp = (): INestApplication => {
 
 beforeAll(async () => {
   database = await new PostgreSqlContainer("postgres:18-alpine").start();
-  const spaDir = mkdtempSync(join(tmpdir(), "spa-"));
-  writeFileSync(join(spaDir, "index.html"), "<!doctype html><title>SPA</title>");
-  app = await createApp({ databaseUrl: startedDatabase().getConnectionUri(), spaDir });
+  app = await createApp(testAppOptions(startedDatabase().getConnectionUri()));
   await app.init();
 });
 

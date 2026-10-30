@@ -15,13 +15,22 @@ import { api } from "./api";
 import { forget } from "./forget";
 
 type Owner = components["schemas"]["CurrentOwner"];
+type User = components["schemas"]["CurrentUser"];
 
 interface Session {
   logout: () => Promise<void>;
-  owner: Owner | undefined;
   ready: boolean;
-  setOwner: (owner: Owner) => void;
+  setUser: (user: User) => void;
+  user: User | undefined;
 }
+
+/** Where a logged-in user starts: an owner at their events, the admin at the owners list. */
+const homeOf = (user: User): string => {
+  if (user.role === "admin") {
+    return "/admin/users";
+  }
+  return "/events";
+};
 
 const SessionContext = createContext<Session | undefined>(undefined);
 
@@ -33,16 +42,13 @@ const useSession = (): Session => {
   return session;
 };
 
-const loadOwner = async (): Promise<Owner | undefined> => {
+const loadUser = async (): Promise<User | undefined> => {
   try {
     const result = await api.GET("/api/auth/me");
-    if (result.data !== undefined && result.data.role === "owner") {
-      return result.data;
-    }
+    return result.data;
   } catch {
     return undefined;
   }
-  return undefined;
 };
 
 const Waiting = (): ReactElement => (
@@ -51,15 +57,15 @@ const Waiting = (): ReactElement => (
   </Center>
 );
 
-/** Loads the current user once. Registration and login publish the owner they just received. */
+/** Loads the current user once. Registration and login publish the user they just received. */
 const SessionProvider = ({ children }: { children: ReactNode }): ReactElement => {
-  const [owner, setOwnerState] = useState<Owner>();
+  const [user, setUserState] = useState<User>();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     const load = async (): Promise<void> => {
       try {
-        setOwnerState(await loadOwner());
+        setUserState(await loadUser());
       } finally {
         setReady(true);
       }
@@ -75,40 +81,57 @@ const SessionProvider = ({ children }: { children: ReactNode }): ReactElement =>
         } catch {
           // The local session is cleared below even when the request does not land.
         }
-        setOwnerState(undefined);
+        setUserState(undefined);
       },
-      owner,
       ready,
-      setOwner: setOwnerState,
+      setUser: setUserState,
+      user,
     }),
-    [owner, ready],
+    [user, ready],
   );
 
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 };
 
-/** Owner pages. An anonymous visitor goes to `/login`. */
-const RequireOwner = ({ children }: { children: ReactNode }): ReactElement => {
-  const session = useSession();
-  if (session.owner === undefined) {
-    if (session.ready) {
+/** Pages of one role. An anonymous visitor goes to `/login`, a user of the other role to their own start page. */
+const RequireRole = ({
+  children,
+  role,
+}: {
+  children: ReactNode;
+  role: User["role"];
+}): ReactElement => {
+  const { ready, user } = useSession();
+  if (user === undefined) {
+    if (ready) {
       return <Navigate to="/login" replace />;
     }
     return <Waiting />;
   }
+  if (user.role !== role) {
+    return <Navigate to={homeOf(user)} replace />;
+  }
   return <>{children}</>;
 };
 
-/** `/register` and `/login`. A logged-in owner goes to their events. */
+/** `/register` and `/login`. A logged-in user goes to their start page. */
 const RequireAnonymous = ({ children }: { children: ReactNode }): ReactElement => {
-  const session = useSession();
-  if (session.owner === undefined) {
-    if (session.ready) {
+  const { ready, user } = useSession();
+  if (user === undefined) {
+    if (ready) {
       return <>{children}</>;
     }
     return <Waiting />;
   }
-  return <Navigate to="/events" replace />;
+  return <Navigate to={homeOf(user)} replace />;
 };
 
-export { type Owner, RequireAnonymous, RequireOwner, SessionProvider, useSession };
+export {
+  homeOf,
+  type Owner,
+  RequireAnonymous,
+  RequireRole,
+  SessionProvider,
+  type User,
+  useSession,
+};
