@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.3.0...v0.4.0) (2026-10-30)
+
+
+### Features
+
+* **calendars:** show a guest the public Слоты of a Владелец ([#31](https://github.com/Geschoss/ai-for-developers-project-386/issues/31)) ([9d14f87](https://github.com/Geschoss/ai-for-developers-project-386/commit/9d14f87a8d08818e668c1d46160facf81e52afe5))
+
 ## [0.3.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.2.0...v0.3.0) (2026-10-30)
 
 
