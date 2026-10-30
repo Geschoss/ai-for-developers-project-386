@@ -71,7 +71,15 @@ const MissingCalendar = (): ReactElement => (
   </Container>
 );
 
-const CalendarBody = ({ state }: { state: LoadState }): ReactElement => {
+const CalendarBody = ({
+  onRefresh,
+  slug,
+  state,
+}: {
+  onRefresh: () => Promise<void>;
+  slug: string;
+  state: LoadState;
+}): ReactElement => {
   if (state.kind === "loading") {
     return (
       <Center h="40vh">
@@ -91,12 +99,18 @@ const CalendarBody = ({ state }: { state: LoadState }): ReactElement => {
   }
   return (
     <Container size="lg" py="lg">
-      <SlotBoard calendar={state.calendar} guestTimeZone={browserTimeZone()} slots={state.slots} />
+      <SlotBoard
+        calendar={state.calendar}
+        calendarSlug={slug}
+        guestTimeZone={browserTimeZone()}
+        onRefresh={onRefresh}
+        slots={state.slots}
+      />
     </Container>
   );
 };
 
-/** `/u/:calendarSlug`. Anyone can look; choosing a Слот and booking it is a later task. */
+/** `/u/:calendarSlug`. A Гость picks a free Слот, leaves a name and email, and sees «Вы записаны». */
 const PublicCalendarPage = (): ReactElement => {
   const { calendarSlug } = useParams();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
@@ -111,10 +125,26 @@ const PublicCalendarPage = (): ReactElement => {
     forget(load());
   }, [calendarSlug]);
 
+  const reload = async (): Promise<void> => {
+    if (calendarSlug === undefined) {
+      return;
+    }
+    const slots = await readSlots(calendarSlug);
+    if (slots === undefined) {
+      return;
+    }
+    setState((current) => {
+      if (current.kind !== "ready") {
+        return current;
+      }
+      return { ...current, slots };
+    });
+  };
+
   if (calendarSlug === undefined) {
     return <MissingCalendar />;
   }
-  return <CalendarBody state={state} />;
+  return <CalendarBody onRefresh={reload} slug={calendarSlug} state={state} />;
 };
 
 export { PublicCalendarPage };

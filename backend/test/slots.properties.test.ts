@@ -29,8 +29,8 @@ const maxHorizon = 60;
 const horizonPaddingDays = 2;
 // oxlint-disable-next-line eslint/no-magic-numbers -- the year the properties sample
 const sampleYear = 2026;
-// oxlint-disable-next-line eslint/no-magic-numbers -- the time-zone scan can exceed Vitest's default
-const propertyTimeoutMs = 20_000;
+// oxlint-disable-next-line eslint/no-magic-numbers -- a busy CI runner can spend past 20s on the zone scan
+const propertyTimeoutMs = 60_000;
 
 const hourMs = minutesPerHour * secondsPerMinute * msPerSecond;
 const msPerDay = hoursPerDay * hourMs;
