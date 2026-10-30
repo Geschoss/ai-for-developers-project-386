@@ -76,6 +76,8 @@
           "Post",
           "PUT",
           "Put",
+          "Param",
+          "Query",
           "Req",
           "Res",
         ],

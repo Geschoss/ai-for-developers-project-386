@@ -49,16 +49,13 @@ describe("owner session", () => {
     globalThis.history.pushState({}, "", "/");
   });
 
-  it.each(["/calendar", "/events", "/settings"])(
-    "sends an anonymous visitor from %s to login",
-    async (path) => {
-      globalThis.history.pushState({}, "", path);
-      render(<App />);
+  it.each(["/events", "/settings"])("sends an anonymous visitor from %s to login", async (path) => {
+    globalThis.history.pushState({}, "", path);
+    render(<App />);
 
-      expect(await screen.findByRole("heading", { name: "Вход" })).toBeInTheDocument();
-      expect(globalThis.location.pathname).toBe("/login");
-    },
-  );
+    expect(await screen.findByRole("heading", { name: "Вход" })).toBeInTheDocument();
+    expect(globalThis.location.pathname).toBe("/login");
+  });
 
   it("sends a logged-in owner away from registration", async () => {
     vi.stubGlobal("fetch", async (): Promise<Response> => {
@@ -69,7 +66,8 @@ describe("owner session", () => {
     render(<App />);
 
     expect(await screen.findByRole("heading", { name: "Предстоящие события" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Мой календарь" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Мой календарь" })).toHaveAttribute("href", "/u/anna");
+    expect(screen.getByRole("button", { name: "Скопировать ссылку" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Настройки" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Выйти" })).toBeInTheDocument();
     expect(globalThis.location.pathname).toBe("/events");

@@ -29,7 +29,7 @@ const OwnerBar = ({
     <Container component="header" size="lg" py="sm">
       <Group justify="space-between">
         <Group>
-          <Anchor component={Link} to="/calendar">
+          <Anchor component={Link} to={`/u/${owner.calendarSlug}`}>
             Мой календарь
           </Anchor>
           <Button variant="subtle" onClick={copy}>

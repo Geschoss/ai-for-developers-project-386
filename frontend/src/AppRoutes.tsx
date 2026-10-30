@@ -5,6 +5,7 @@ import { AdminUsers } from "./pages/AdminUsers";
 import { Landing } from "./pages/Landing";
 import { Login } from "./pages/Login";
 import { Placeholder } from "./pages/Placeholder";
+import { PublicCalendarPage } from "./pages/PublicCalendar";
 import { Register } from "./pages/Register";
 import { Settings } from "./pages/Settings";
 import { RequireAnonymous, RequireRole } from "./session";
@@ -25,7 +26,7 @@ const AppRoutes = (): ReactElement => (
     <Route path="/" element={<Landing />} />
     <Route path="/register" element={anonymousPage(<Register />)} />
     <Route path="/login" element={anonymousPage(<Login />)} />
-    <Route path="/calendar" element={ownerPage("Мой календарь")} />
+    <Route path="/u/:calendarSlug" element={<PublicCalendarPage />} />
     <Route path="/events" element={ownerPage("Предстоящие события")} />
     <Route
       path="/settings"
