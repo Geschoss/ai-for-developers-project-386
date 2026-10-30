@@ -2,6 +2,7 @@ import { Alert, SimpleGrid, Stack, Title } from "@mantine/core";
 import { type ReactElement, useState } from "react";
 import type { components } from "spec/api";
 
+import { ownCalendarMessage } from "../problems";
 import { BookingPanel } from "./BookingPanel";
 import { horizonGuestKeys, withHorizonDays } from "./horizon";
 import { monthOfKey, type YearMonth } from "./month-grid";
@@ -16,6 +17,13 @@ const ZoneAlert = ({ banner }: { banner: string | undefined }): ReactElement => 
     return <></>;
   }
   return <Alert>{banner}</Alert>;
+};
+
+const OwnCalendarNotice = ({ own }: { own: boolean }): ReactElement => {
+  if (!own) {
+    return <></>;
+  }
+  return <Alert>{ownCalendarMessage}</Alert>;
 };
 
 const firstStart = (slots: readonly Slot[]): string | undefined => {
@@ -96,18 +104,65 @@ const bannerSample = (
   return firstStart(slots);
 };
 
+const BoardColumns = ({
+  bounds,
+  calendarSlug,
+  day,
+  groups,
+  guestTimeZone,
+  month,
+  onMonth,
+  onRefresh,
+  onSelect,
+  ownCalendar,
+}: {
+  bounds: { earliest: YearMonth; latest: YearMonth };
+  calendarSlug: string;
+  day: string | undefined;
+  groups: Map<string, DayGroup>;
+  guestTimeZone: string;
+  month: YearMonth;
+  onMonth: (month: YearMonth) => void;
+  onRefresh: () => Promise<void>;
+  onSelect: (day: string) => void;
+  ownCalendar: boolean;
+}): ReactElement => (
+  <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+    <MonthCard
+      earliest={bounds.earliest}
+      groups={groups}
+      latest={bounds.latest}
+      month={month}
+      onMonth={onMonth}
+      onSelect={onSelect}
+      selected={day}
+    />
+    <BookingPanel
+      key={day}
+      calendarSlug={calendarSlug}
+      day={day}
+      group={groupFor(groups, day)}
+      guestTimeZone={guestTimeZone}
+      onRefresh={onRefresh}
+      ownCalendar={ownCalendar}
+    />
+  </SimpleGrid>
+);
+
 /** Month of bookable days. A chosen free Слот takes a name and email, then shows «Вы записаны». */
 const SlotBoard = ({
   calendar,
   calendarSlug,
   guestTimeZone,
   onRefresh,
+  ownCalendar,
   slots,
 }: {
   calendar: PublicCalendar;
   calendarSlug: string;
   guestTimeZone: string;
   onRefresh: () => Promise<void>;
+  ownCalendar: boolean;
   slots: readonly Slot[];
 }): ReactElement => {
   const { bounds, groups, opened } = boardDays(calendar, guestTimeZone, slots);
@@ -123,26 +178,20 @@ const SlotBoard = ({
   return (
     <Stack gap="md">
       <Title order={1}>Запись на звонок у {calendar.ownerName}</Title>
+      <OwnCalendarNotice own={ownCalendar} />
       <ZoneAlert banner={banner} />
-      <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-        <MonthCard
-          earliest={bounds.earliest}
-          groups={groups}
-          latest={bounds.latest}
-          month={month}
-          onMonth={setMonth}
-          onSelect={setDay}
-          selected={day}
-        />
-        <BookingPanel
-          key={day}
-          calendarSlug={calendarSlug}
-          day={day}
-          group={groupFor(groups, day)}
-          guestTimeZone={guestTimeZone}
-          onRefresh={onRefresh}
-        />
-      </SimpleGrid>
+      <BoardColumns
+        bounds={bounds}
+        calendarSlug={calendarSlug}
+        day={day}
+        groups={groups}
+        guestTimeZone={guestTimeZone}
+        month={month}
+        onMonth={setMonth}
+        onRefresh={onRefresh}
+        onSelect={setDay}
+        ownCalendar={ownCalendar}
+      />
     </Stack>
   );
 };

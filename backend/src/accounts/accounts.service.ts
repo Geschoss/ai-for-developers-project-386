@@ -155,10 +155,13 @@ class AccountsService {
     await this.db.delete(sessions).where(eq(sessions.id, sessionId));
   }
 
-  /** The user behind `sid`, or `unauthenticated` when the session is missing or expired. */
-  public async currentUser(sessionId: string | undefined): Promise<CurrentUser> {
+  /**
+   * The user behind `sid`. Missing and expired sessions are absent, not an error: a public route treats that
+   * visitor as a Гость. An expired session is deleted.
+   */
+  public async findUser(sessionId: string | undefined): Promise<CurrentUser | undefined> {
     if (sessionId === undefined) {
-      throw problem(401, "unauthenticated");
+      return undefined;
     }
     const [row] = await this.db
       .select({
@@ -177,9 +180,18 @@ class AccountsService {
       if (row !== undefined) {
         await this.db.delete(sessions).where(eq(sessions.id, sessionId));
       }
-      throw problem(401, "unauthenticated");
+      return undefined;
     }
     return currentUserFrom(row);
+  }
+
+  /** The user behind `sid`, or `unauthenticated` when the session is missing or expired. */
+  public async currentUser(sessionId: string | undefined): Promise<CurrentUser> {
+    const user = await this.findUser(sessionId);
+    if (user === undefined) {
+      throw problem(401, "unauthenticated");
+    }
+    return user;
   }
 
   private async storeOwner(input: {

@@ -25,6 +25,24 @@ const messageByPath: Record<keyof FieldErrors, string> = {
 
 const requestFailed = "Не удалось выполнить запрос";
 
+const ownCalendarMessage = "Свой календарь бронировать нельзя";
+
+const bookingMessage = (code: string): string | undefined => {
+  if (code === "slot_taken") {
+    return "Этот слот уже занят";
+  }
+  if (code === "slot_in_past") {
+    return "Этот слот уже начался или прошёл";
+  }
+  if (code === "outside_planning_horizon") {
+    return "Этот слот за Горизонтом планирования";
+  }
+  if (code === "own_calendar") {
+    return ownCalendarMessage;
+  }
+  return undefined;
+};
+
 const fieldByPath: Record<string, keyof FieldErrors | undefined> = {
   "/body/calendarSlug": "calendarSlug",
   "/body/dailyBookingLimit": "dailyBookingLimit",
@@ -85,6 +103,17 @@ const validationOrFallback = (code: string | undefined, error: unknown): ShownEr
   return { fields: {}, form: requestFailed };
 };
 
+const bookingErrors = (code: string | undefined): ShownErrors | undefined => {
+  if (code === undefined) {
+    return undefined;
+  }
+  const form = bookingMessage(code);
+  if (form === undefined) {
+    return undefined;
+  }
+  return { fields: {}, form };
+};
+
 /** Turns an API problem into Russian text. `invalid_credentials` stays a single form message. */
 const errorsFor = (error: unknown): ShownErrors => {
   const code = codeOf(error);
@@ -97,10 +126,7 @@ const errorsFor = (error: unknown): ShownErrors => {
   if (code === "invalid_credentials") {
     return { fields: {}, form: "Неверный email или пароль" };
   }
-  if (code === "slot_taken") {
-    return { fields: {}, form: "Этот слот уже занят" };
-  }
-  return validationOrFallback(code, error);
+  return bookingErrors(code) ?? validationOrFallback(code, error);
 };
 
-export { errorsFor, type FieldErrors, messageByPath };
+export { errorsFor, type FieldErrors, messageByPath, ownCalendarMessage };

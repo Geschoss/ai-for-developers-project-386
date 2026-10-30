@@ -5,6 +5,7 @@ import type { components } from "spec/api";
 
 import { api } from "../api";
 import { forget } from "../forget";
+import { useSession } from "../session";
 import { browserTimeZone } from "../time-zones";
 import { SlotBoard } from "./SlotBoard";
 
@@ -73,10 +74,12 @@ const MissingCalendar = (): ReactElement => (
 
 const CalendarBody = ({
   onRefresh,
+  ownCalendar,
   slug,
   state,
 }: {
   onRefresh: () => Promise<void>;
+  ownCalendar: boolean;
   slug: string;
   state: LoadState;
 }): ReactElement => {
@@ -104,6 +107,7 @@ const CalendarBody = ({
         calendarSlug={slug}
         guestTimeZone={browserTimeZone()}
         onRefresh={onRefresh}
+        ownCalendar={ownCalendar}
         slots={state.slots}
       />
     </Container>
@@ -113,7 +117,10 @@ const CalendarBody = ({
 /** `/u/:calendarSlug`. A Гость picks a free Слот, leaves a name and email, and sees «Вы записаны». */
 const PublicCalendarPage = (): ReactElement => {
   const { calendarSlug } = useParams();
+  const { user } = useSession();
   const [state, setState] = useState<LoadState>({ kind: "loading" });
+  const ownCalendar =
+    user !== undefined && user.role === "owner" && user.calendarSlug === calendarSlug;
 
   useEffect(() => {
     if (calendarSlug === undefined) {
@@ -144,7 +151,9 @@ const PublicCalendarPage = (): ReactElement => {
   if (calendarSlug === undefined) {
     return <MissingCalendar />;
   }
-  return <CalendarBody onRefresh={reload} slug={calendarSlug} state={state} />;
+  return (
+    <CalendarBody onRefresh={reload} ownCalendar={ownCalendar} slug={calendarSlug} state={state} />
+  );
 };
 
 export { PublicCalendarPage };
