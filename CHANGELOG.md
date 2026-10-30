@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.1.0...v0.2.0) (2026-10-30)
+
+
+### Features
+
+* **admin:** create the Администратор at startup and list Владельцы for them ([#27](https://github.com/Geschoss/ai-for-developers-project-386/issues/27)) ([cdd7ce1](https://github.com/Geschoss/ai-for-developers-project-386/commit/cdd7ce1891b437c01f05b2182ddb0caf3f327402))
+
 ## 0.1.0 (2026-10-29)
 
 
