@@ -38,7 +38,7 @@ let sequence = 0;
 const registerOwner = async (): Promise<string> => {
   sequence += 1;
   const slug = `book-${sequence}`;
-  await request(httpServer(runningApp()))
+  const response = await request(httpServer(runningApp()))
     .post("/api/auth/register")
     .send({
       calendarSlug: slug,
@@ -46,8 +46,9 @@ const registerOwner = async (): Promise<string> => {
       name: "Анна",
       password: "long-enough",
       timeZone: "Europe/Moscow",
-    })
-    .expect(201);
+    });
+  expectMatchesSpec(response, "post", "/api/auth/register");
+  expect(response.status).toBe(201);
   return slug;
 };
 
