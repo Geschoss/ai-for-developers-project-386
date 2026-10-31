@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.5.0...v0.6.0) (2026-10-30)
+
+
+### Features
+
+* **calendars:** reject a Слот in the past, beyond the horizon, or on one's own calendar ([#35](https://github.com/Geschoss/ai-for-developers-project-386/issues/35)) ([5b4e3bd](https://github.com/Geschoss/ai-for-developers-project-386/commit/5b4e3bd697ac89905192a21641a875a6a8c7cd02))
+
 ## [0.5.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.4.0...v0.5.0) (2026-10-30)
 
 
