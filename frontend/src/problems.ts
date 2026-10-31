@@ -27,21 +27,15 @@ const requestFailed = "Не удалось выполнить запрос";
 
 const ownCalendarMessage = "Свой календарь бронировать нельзя";
 
-const bookingMessage = (code: string): string | undefined => {
-  if (code === "slot_taken") {
-    return "Этот слот уже занят";
-  }
-  if (code === "slot_in_past") {
-    return "Этот слот уже начался или прошёл";
-  }
-  if (code === "outside_planning_horizon") {
-    return "Этот слот за Горизонтом планирования";
-  }
-  if (code === "own_calendar") {
-    return ownCalendarMessage;
-  }
-  return undefined;
+const bookingMessageByCode: Record<string, string> = {
+  daily_limit_reached: "На этот день уже достигнут лимит бронирований",
+  outside_planning_horizon: "Этот слот за Горизонтом планирования",
+  own_calendar: ownCalendarMessage,
+  slot_in_past: "Этот слот уже начался или прошёл",
+  slot_taken: "Этот слот уже занят",
 };
+
+const bookingMessage = (code: string): string | undefined => bookingMessageByCode[code];
 
 const fieldByPath: Record<string, keyof FieldErrors | undefined> = {
   "/body/calendarSlug": "calendarSlug",
