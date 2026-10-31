@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { Inject, Injectable } from "@nestjs/common";
-import { and, eq, gte, lt } from "drizzle-orm";
+import { and, eq, gte, lt, sql } from "drizzle-orm";
 import type { components } from "spec/api";
 
 import { AccountsService } from "../accounts/accounts.service.js";
@@ -9,7 +9,7 @@ import { APP_OPTIONS, type AppOptions } from "../app-options.js";
 import { DATABASE, type Database } from "../database/database.module.js";
 import { bookings, users } from "../database/schema.js";
 import { problem } from "../problem.js";
-import { bookableSlots, isSlotStart, withinPlanningHorizon } from "./slots.js";
+import { bookableSlots, civilDayBounds, isSlotStart, withinPlanningHorizon } from "./slots.js";
 
 type BookingConfirmation = components["schemas"]["BookingConfirmation"];
 type BookingRequest = components["schemas"]["BookingRequest"];
@@ -35,6 +35,14 @@ interface OwnerCalendar {
   timeZone: string;
 }
 
+interface LockedOwner extends OwnerCalendar {
+  dailyBookingLimit: number;
+}
+
+interface LockedRow extends OwnerRow {
+  dailyBookingLimit: number | null;
+}
+
 const requireOwner = (row: OwnerRow | undefined): OwnerCalendar => {
   if (row === undefined) {
     throw problem(404, "calendar_not_found");
@@ -48,6 +56,14 @@ const requireOwner = (row: OwnerRow | undefined): OwnerCalendar => {
     planningHorizonDays: row.planningHorizonDays,
     timeZone: row.timeZone,
   };
+};
+
+const requireLocked = (row: LockedRow | undefined): LockedOwner => {
+  const owner = requireOwner(row);
+  if (row === undefined || row.dailyBookingLimit === null) {
+    throw new Error("Owner is missing calendar fields");
+  }
+  return { ...owner, dailyBookingLimit: row.dailyBookingLimit };
 };
 
 const statusOf = (startAt: Date, takenAt: ReadonlySet<number>): SlotStatus => {
@@ -143,9 +159,10 @@ const insertBooking = async (tx: Transaction, stored: StoredBooking): Promise<vo
 };
 
 /** The Владелец row, locked until the Бронирование commits. Later checks read this snapshot. */
-const lockedOwner = async (tx: Transaction, calendarSlug: string): Promise<OwnerCalendar> => {
+const lockedOwner = async (tx: Transaction, calendarSlug: string): Promise<LockedOwner> => {
   const [row] = await tx
     .select({
+      dailyBookingLimit: users.dailyBookingLimit,
       id: users.id,
       name: users.name,
       planningHorizonDays: users.planningHorizonDays,
@@ -155,7 +172,32 @@ const lockedOwner = async (tx: Transaction, calendarSlug: string): Promise<Owner
     .where(and(eq(users.calendarSlug, calendarSlug), eq(users.role, "owner")))
     .limit(1)
     .for("update");
-  return requireOwner(row);
+  return requireLocked(row);
+};
+
+/**
+ * The caller holds `SELECT … FOR UPDATE` on the Владелец (ADR-0003).
+ * The email comparison ignores register. A smaller limit does not delete stored Бронирования.
+ */
+const rejectDailyLimit = async (
+  tx: Transaction,
+  check: { email: string; owner: LockedOwner; startAt: Date },
+): Promise<void> => {
+  const day = civilDayBounds(check.startAt, check.owner.timeZone);
+  const rows = await tx
+    .select({ id: bookings.id })
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.ownerId, check.owner.id),
+        sql`lower(${bookings.guestEmail}) = lower(${check.email})`,
+        gte(bookings.startAt, day.from),
+        lt(bookings.startAt, day.to),
+      ),
+    );
+  if (rows.length >= check.owner.dailyBookingLimit) {
+    throw problem(409, "daily_limit_reached");
+  }
 };
 
 /** Public calendar. A Гость sees the Владелец's name, zone and Слоты, never another Гость's name or email. */
@@ -179,8 +221,8 @@ class CalendarsService {
 
   /**
    * Stores a Бронирование and returns what the «Вы записаны» screen shows.
-   * The Горизонт планирования is read under `SELECT … FOR UPDATE` in the same transaction as the insert
-   * (ADR-0003). The Лимит бронирований will use this same locked transaction.
+   * The Горизонт планирования and the Лимит бронирований are read under `SELECT … FOR UPDATE`
+   * in the same transaction as the insert (ADR-0003).
    */
   public async createBooking(
     calendarSlug: string,
@@ -196,6 +238,7 @@ class CalendarsService {
     return this.db.transaction(async (tx) => {
       const owner = await lockedOwner(tx, calendarSlug);
       rejectUnbookable(startAt, owner, now);
+      await rejectDailyLimit(tx, { email: booking.guest.email, owner, startAt });
       await insertBooking(tx, { guest: booking.guest, ownerId: owner.id, startAt });
       return {
         ownerName: owner.name,

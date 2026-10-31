@@ -133,6 +133,20 @@ interface HorizonCheck {
 }
 
 /**
+ * Half-open UTC interval of the civil day that contains `instant` in `timeZone`.
+ * The Лимит бронирований counts a day here, so two Слоты on one Владелец day share a limit
+ * even when a UTC midnight falls between them.
+ */
+const civilDayBounds = (instant: Date, timeZone: string): { from: Date; to: Date } => {
+  const formatter = formatterFor(timeZone);
+  const day = civilFrom(formatter, instant);
+  return {
+    from: zonedLocalToUtc(formatter, { date: day, hour: 0, minute: 0 }),
+    to: zonedLocalToUtc(formatter, { date: addDays(day, 1), hour: 0, minute: 0 }),
+  };
+};
+
+/**
  * True when `start` falls on today in `timeZone` or on one of the following days, `planningHorizonDays` in all.
  * Today counts. The day after the horizon does not.
  */
@@ -193,4 +207,4 @@ const bookableSlots = (query: SlotQuery): Date[] => {
   return starts;
 };
 
-export { bookableSlots, isSlotStart, withinPlanningHorizon };
+export { bookableSlots, civilDayBounds, isSlotStart, withinPlanningHorizon };
