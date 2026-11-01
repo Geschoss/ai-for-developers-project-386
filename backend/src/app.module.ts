@@ -3,10 +3,10 @@ import { type DynamicModule, Module } from "@nestjs/common";
 import { AccountsModule } from "./accounts/accounts.module.js";
 import { AdminModule } from "./admin/admin.module.js";
 import { APP_OPTIONS, type AppOptions, AppOptionsModule } from "./app-options.js";
-import { CalendarsModule } from "./calendars/calendars.module.js";
 import { DatabaseModule } from "./database/database.module.js";
 import { HealthController } from "./health/health.controller.js";
 import { OwnerModule } from "./owner/owner.module.js";
+import { SchedulingModule } from "./scheduling/scheduling.module.js";
 
 @Module({})
 class AppModule {
@@ -25,7 +25,7 @@ class AppModule {
         AccountsModule,
         AdminModule,
         OwnerModule,
-        CalendarsModule,
+        SchedulingModule,
       ],
       module: AppModule,
     };

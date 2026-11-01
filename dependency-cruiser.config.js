@@ -50,6 +50,33 @@ const config = {
         pathNot: ["node_modules/@types/"],
       },
     },
+    {
+      comment:
+        "The Планирование domain does not import Nest, Drizzle, Express, infrastructure, or HTTP (ADR-0006).",
+      from: { path: "^backend/src/scheduling/domain/" },
+      name: "scheduling-domain-is-pure",
+      severity: "error",
+      to: {
+        path: "node_modules/(?:@nestjs/|drizzle-orm/|express/)|^backend/src/scheduling/(?:infrastructure|http)/",
+      },
+    },
+    {
+      comment: "Сценарии depend on ports, not on Drizzle adapters or HTTP (ADR-0006).",
+      from: { path: "^backend/src/scheduling/application/" },
+      name: "scheduling-application-has-no-adapters",
+      severity: "error",
+      to: { path: "^backend/src/scheduling/(?:infrastructure|http)/" },
+    },
+    {
+      comment: "Drizzle adapters are wired in the Планирование module and nowhere else (ADR-0006).",
+      from: {
+        path: "^backend/",
+        pathNot: String.raw`^backend/src/scheduling/(?:scheduling\.module\.ts|infrastructure/)`,
+      },
+      name: "scheduling-infrastructure-only-from-module",
+      severity: "error",
+      to: { path: "^backend/src/scheduling/infrastructure/" },
+    },
     // No-orphans is intentionally absent: unused files are Knip's job.
   ],
   options: {
@@ -63,7 +90,7 @@ const config = {
       mainFields: ["module", "main"],
     },
     exclude: {
-      path: ["(^|/)dist/", "^backend/drizzle/"],
+      path: ["(^|/)dist/", "^backend/drizzle/", "boundary-fixtures"],
     },
     parser: "swc",
     tsPreCompilationDeps: true,

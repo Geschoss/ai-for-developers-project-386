@@ -7,11 +7,9 @@ import { APP_OPTIONS, type AppOptions } from "../app-options.js";
 import { DATABASE, type Database } from "../database/database.module.js";
 import { bookings, users } from "../database/schema.js";
 import { problem } from "../problem.js";
-import { assertKnownTimeZone } from "../time-zone.js";
 
 type Booking = components["schemas"]["Booking"];
 type CurrentOwner = components["schemas"]["CurrentOwner"];
-type OwnerSettings = components["schemas"]["OwnerSettings"];
 
 interface BookingRow {
   createdAt: Date;
@@ -21,12 +19,6 @@ interface BookingRow {
   startAt: Date;
 }
 
-interface SettingsRow {
-  dailyBookingLimit: number | null;
-  planningHorizonDays: number | null;
-  timeZone: string | null;
-}
-
 const bookingFrom = (row: BookingRow): Booking => ({
   createdAt: row.createdAt.toISOString(),
   guest: { email: row.guestEmail, name: row.guestName },
@@ -34,27 +26,7 @@ const bookingFrom = (row: BookingRow): Booking => ({
   startAt: row.startAt.toISOString(),
 });
 
-const settingsFrom = (row: SettingsRow | undefined): OwnerSettings => {
-  if (
-    row === undefined ||
-    row.dailyBookingLimit === null ||
-    row.planningHorizonDays === null ||
-    row.timeZone === null
-  ) {
-    throw new Error("Owner is missing calendar settings");
-  }
-  return {
-    dailyBookingLimit: row.dailyBookingLimit,
-    planningHorizonDays: row.planningHorizonDays,
-    timeZone: row.timeZone,
-  };
-};
-
-/**
- * The Владелец's own calendar: settings and the upcoming Бронирования.
- * A settings change writes only those three columns. Existing Бронирования stay, because they are
- * absolute instants, and a smaller Горизонт планирования or Лимит бронирований does not remove them.
- */
+/** The Владелец's upcoming Бронирования. Settings live in Планирование. */
 @Injectable()
 class OwnerService {
   public constructor(
@@ -83,44 +55,6 @@ class OwnerService {
       .where(and(eq(bookings.ownerId, ownerId), gt(bookings.startAt, current)))
       .orderBy(asc(bookings.startAt));
     return rows.map((row) => bookingFrom(row));
-  }
-
-  /** Settings stored for the Владелец behind `sid`. */
-  public async getSettings(sessionId: string | undefined): Promise<OwnerSettings> {
-    const owner = await this.owner(sessionId);
-    const [row] = await this.db
-      .select({
-        dailyBookingLimit: users.dailyBookingLimit,
-        planningHorizonDays: users.planningHorizonDays,
-        timeZone: users.timeZone,
-      })
-      .from(users)
-      .where(and(eq(users.email, owner.email), eq(users.role, "owner")))
-      .limit(1);
-    return settingsFrom(row);
-  }
-
-  /** Replaces all three settings. An unknown time zone is `validation_failed`. */
-  public async updateSettings(
-    sessionId: string | undefined,
-    settings: OwnerSettings,
-  ): Promise<OwnerSettings> {
-    const owner = await this.owner(sessionId);
-    assertKnownTimeZone(settings.timeZone);
-    const [row] = await this.db
-      .update(users)
-      .set({
-        dailyBookingLimit: settings.dailyBookingLimit,
-        planningHorizonDays: settings.planningHorizonDays,
-        timeZone: settings.timeZone,
-      })
-      .where(and(eq(users.email, owner.email), eq(users.role, "owner")))
-      .returning({
-        dailyBookingLimit: users.dailyBookingLimit,
-        planningHorizonDays: users.planningHorizonDays,
-        timeZone: users.timeZone,
-      });
-    return settingsFrom(row);
   }
 
   private now(): Date {

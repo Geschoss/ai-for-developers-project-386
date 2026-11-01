@@ -1,7 +1,7 @@
 import { assert, constantFrom, integer, property } from "fast-check";
 import { describe, expect, it } from "vitest";
 
-import { bookableSlots } from "../src/calendars/slots.js";
+import { bookableSlots } from "../src/scheduling/domain/slot-grid.js";
 
 // oxlint-disable-next-line eslint/no-magic-numbers -- 18 Слотов from 09:00 to 17:30
 const slotsPerDay = 18;

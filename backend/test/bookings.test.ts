@@ -10,6 +10,8 @@ import { expectMatchesSpec } from "./contract.js";
 const wideRange = { from: "2020-01-01T00:00:00.000Z", to: "2040-01-01T00:00:00.000Z" };
 const guestName = "Борис";
 const raceEmails = ["a@example.com", "b@example.com", "c@example.com", "d@example.com"];
+// oxlint-disable-next-line eslint/no-magic-numbers -- 48 hours later is another civil day in Europe/Moscow
+const laterDayMs = 48 * 60 * 60 * 1000;
 
 interface Slot {
   startAt: string;
@@ -129,6 +131,30 @@ afterAll(async () => {
   }
 });
 
+const laterSlot = (slots: Slot[], first: Slot): Slot => {
+  const later = slots.find(
+    (slot) => Date.parse(slot.startAt) >= Date.parse(first.startAt) + laterDayMs,
+  );
+  if (later === undefined) {
+    throw new Error("Expected a Слот on a later day");
+  }
+  return later;
+};
+
+const bookTwoDays = async (slug: string): Promise<{ first: string; later: string }> => {
+  const slots = slotsOf(await listSlots(slug));
+  const [first] = slots;
+  if (first === undefined) {
+    throw new Error("Expected a bookable Слот");
+  }
+  const later = laterSlot(slots, first);
+  const earlierBooking = await book(slug, first.startAt, "earlier@example.com");
+  const laterBooking = await book(slug, later.startAt, "later@example.com");
+  expect(earlierBooking.status).toBe(201);
+  expect(laterBooking.status).toBe(201);
+  return { first: first.startAt, later: later.startAt };
+};
+
 describe("POST /api/calendars/:slug/bookings", () => {
   it("books a free Слот and then shows it as booked, without the Гость", async () => {
     const slug = await registerOwner();
@@ -173,5 +199,16 @@ describe("POST /api/calendars/:slug/bookings", () => {
     expect(taken).toHaveLength(raceEmails.length - 1);
     expect(taken.every((response) => problemCode(response) === "slot_taken")).toBe(true);
     hiddenGuest(await listSlots(slug), slot.startAt);
+  });
+});
+
+describe("a Календарь keeps Бронирования of other days", () => {
+  it("keeps a Бронирование on another day when a later day is booked", async () => {
+    const slug = await registerOwner();
+    const booked = await bookTwoDays(slug);
+    const stored = bookedSlots(slotsOf(await listSlots(slug)));
+
+    expect(stored).toContainEqual({ startAt: booked.first, status: "booked" });
+    expect(stored).toContainEqual({ startAt: booked.later, status: "booked" });
   });
 });

@@ -7,7 +7,7 @@ import type { components } from "spec/api";
 import { DATABASE, type Database } from "../database/database.module.js";
 import { sessions, users } from "../database/schema.js";
 import { problem } from "../problem.js";
-import { assertKnownTimeZone } from "../time-zone.js";
+import { knownTimeZone } from "./known-time-zone.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
 import { sessionExpiresAt } from "./session-cookie.js";
 
@@ -69,6 +69,17 @@ interface UserRow {
   timeZone: string | null;
 }
 
+interface SessionRow extends UserRow {
+  expiresAt: Date;
+  id: string;
+}
+
+/** A Владелец behind a cookie. An Администратор has no Календарь, so the caller treats them as nobody. */
+interface OwnerViewer {
+  calendarSlug: string;
+  id: string;
+}
+
 const currentUserFrom = (user: UserRow): CurrentUser => {
   if (user.role === "admin") {
     return { email: user.email, role: "admin" };
@@ -95,7 +106,7 @@ class AccountsService {
 
   /** Creates an owner and a session. Email is stored in lowercase; the calendar slug is unique. */
   public async register(registration: OwnerRegistration): Promise<StartedSession> {
-    assertKnownTimeZone(registration.timeZone);
+    knownTimeZone(registration.timeZone);
     const email = registration.email.toLowerCase();
     await this.rejectTaken(email, registration.calendarSlug);
     const userId = randomUUID();
@@ -155,34 +166,36 @@ class AccountsService {
     await this.db.delete(sessions).where(eq(sessions.id, sessionId));
   }
 
-  /**
-   * The user behind `sid`. Missing and expired sessions are absent, not an error: a public route treats that
-   * visitor as a Гость. An expired session is deleted.
-   */
   public async findUser(sessionId: string | undefined): Promise<CurrentUser | undefined> {
-    if (sessionId === undefined) {
-      return undefined;
-    }
-    const [row] = await this.db
-      .select({
-        calendarSlug: users.calendarSlug,
-        email: users.email,
-        expiresAt: sessions.expiresAt,
-        name: users.name,
-        role: users.role,
-        timeZone: users.timeZone,
-      })
-      .from(sessions)
-      .innerJoin(users, eq(sessions.userId, users.id))
-      .where(eq(sessions.id, sessionId))
-      .limit(1);
-    if (row === undefined || row.expiresAt.getTime() <= Date.now()) {
-      if (row !== undefined) {
-        await this.db.delete(sessions).where(eq(sessions.id, sessionId));
-      }
+    const row = await this.sessionRow(sessionId);
+    if (row === undefined) {
       return undefined;
     }
     return currentUserFrom(row);
+  }
+
+  /**
+   * The Владелец behind `sid`, or nobody. A missing session, an expired one and an Администратор are
+   * nobody: booking them as a Гость must not look like their own Календарь.
+   */
+  public async findOwnerViewer(sessionId: string | undefined): Promise<OwnerViewer | undefined> {
+    const row = await this.sessionRow(sessionId);
+    if (row === undefined || row.role !== "owner" || row.calendarSlug === null) {
+      return undefined;
+    }
+    return { calendarSlug: row.calendarSlug, id: row.id };
+  }
+
+  /** The Владелец behind `sid`. Missing sessions are `unauthenticated`; any other role is `forbidden`. */
+  public async requireOwnerViewer(sessionId: string | undefined): Promise<OwnerViewer> {
+    const row = await this.sessionRow(sessionId);
+    if (row === undefined) {
+      throw problem(401, "unauthenticated");
+    }
+    if (row.role !== "owner" || row.calendarSlug === null) {
+      throw problem(403, "forbidden");
+    }
+    return { calendarSlug: row.calendarSlug, id: row.id };
   }
 
   /** The user behind `sid`, or `unauthenticated` when the session is missing or expired. */
@@ -219,6 +232,37 @@ class AccountsService {
         userId: input.userId,
       });
     });
+  }
+
+  /**
+   * The user behind `sid`. Missing and expired sessions are absent, not an error: a public route treats that
+   * visitor as a Гость. An expired session is deleted.
+   */
+  private async sessionRow(sessionId: string | undefined): Promise<SessionRow | undefined> {
+    if (sessionId === undefined) {
+      return undefined;
+    }
+    const [row] = await this.db
+      .select({
+        calendarSlug: users.calendarSlug,
+        email: users.email,
+        expiresAt: sessions.expiresAt,
+        id: users.id,
+        name: users.name,
+        role: users.role,
+        timeZone: users.timeZone,
+      })
+      .from(sessions)
+      .innerJoin(users, eq(sessions.userId, users.id))
+      .where(eq(sessions.id, sessionId))
+      .limit(1);
+    if (row === undefined || row.expiresAt.getTime() <= Date.now()) {
+      if (row !== undefined) {
+        await this.db.delete(sessions).where(eq(sessions.id, sessionId));
+      }
+      return undefined;
+    }
+    return row;
   }
 
   /** Email wins when both are taken, so the form can point at one field. */
