@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.7.0...v0.8.0) (2026-11-01)
+
+
+### Features
+
+* **owner:** show a Владелец their upcoming Бронирования ([#39](https://github.com/Geschoss/ai-for-developers-project-386/issues/39)) ([ba7173f](https://github.com/Geschoss/ai-for-developers-project-386/commit/ba7173f8c40be2bb9f2b1e7f50a485df2cb622db))
+
 ## [0.7.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.6.0...v0.7.0) (2026-11-01)
 
 
