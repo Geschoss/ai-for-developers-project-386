@@ -2,9 +2,9 @@ import type { ReactElement } from "react";
 import { Route, Routes } from "react-router";
 
 import { AdminUsers } from "./pages/AdminUsers";
+import { Events } from "./pages/Events";
 import { Landing } from "./pages/Landing";
 import { Login } from "./pages/Login";
-import { Placeholder } from "./pages/Placeholder";
 import { PublicCalendarPage } from "./pages/PublicCalendar";
 import { Register } from "./pages/Register";
 import { Settings } from "./pages/Settings";
@@ -14,12 +14,6 @@ const anonymousPage = (page: ReactElement): ReactElement => (
   <RequireAnonymous>{page}</RequireAnonymous>
 );
 
-const ownerPage = (title: string): ReactElement => (
-  <RequireRole role="owner">
-    <Placeholder title={title} />
-  </RequireRole>
-);
-
 /** Every page and who may see it. */
 const AppRoutes = (): ReactElement => (
   <Routes>
@@ -27,7 +21,14 @@ const AppRoutes = (): ReactElement => (
     <Route path="/register" element={anonymousPage(<Register />)} />
     <Route path="/login" element={anonymousPage(<Login />)} />
     <Route path="/u/:calendarSlug" element={<PublicCalendarPage />} />
-    <Route path="/events" element={ownerPage("Предстоящие события")} />
+    <Route
+      path="/events"
+      element={
+        <RequireRole role="owner">
+          <Events />
+        </RequireRole>
+      }
+    />
     <Route
       path="/settings"
       element={
