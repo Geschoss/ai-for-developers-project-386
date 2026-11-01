@@ -2,8 +2,11 @@ import { Body, Controller, Get, HttpCode, Inject, Param, Post, Query, Req } from
 import type { Request } from "express";
 import type { components } from "spec/api";
 
-import { sessionIdFrom } from "../accounts/session-cookie.js";
-import { CalendarsService } from "./calendars.service.js";
+import { AccountsService } from "../../accounts/accounts.service.js";
+import { sessionIdFrom } from "../../accounts/session-cookie.js";
+import { CALENDAR_ROUTES, type CalendarRoutes } from "./calendar-routes.js";
+import { translateScheduling } from "./scheduling-problem.js";
+import { viewerFrom } from "./viewer-from.js";
 
 type BookingConfirmation = components["schemas"]["BookingConfirmation"];
 type BookingRequest = components["schemas"]["BookingRequest"];
@@ -12,11 +15,14 @@ type SlotList = components["schemas"]["SlotList"];
 
 @Controller("calendars")
 export class CalendarsController {
-  public constructor(@Inject(CalendarsService) private readonly calendars: CalendarsService) {}
+  public constructor(
+    @Inject(CALENDAR_ROUTES) private readonly routes: CalendarRoutes,
+    @Inject(AccountsService) private readonly accounts: AccountsService,
+  ) {}
 
   @Get(":calendarSlug")
   public async getPublic(@Param("calendarSlug") calendarSlug: string): Promise<PublicCalendar> {
-    const calendar = await this.calendars.getPublic(calendarSlug);
+    const calendar = await translateScheduling(this.routes.publicCalendar.execute(calendarSlug));
     return calendar;
   }
 
@@ -27,10 +33,9 @@ export class CalendarsController {
     @Body() booking: BookingRequest,
     @Req() request: Request,
   ): Promise<BookingConfirmation> {
-    const confirmation = await this.calendars.createBooking(
-      calendarSlug,
-      booking,
-      sessionIdFrom(request),
+    const viewer = await viewerFrom(this.accounts, sessionIdFrom(request));
+    const confirmation = await translateScheduling(
+      this.routes.bookSlot.execute(calendarSlug, booking, viewer),
     );
     return confirmation;
   }
@@ -41,7 +46,9 @@ export class CalendarsController {
     @Query("from") from: string,
     @Query("to") to: string,
   ): Promise<SlotList> {
-    const slots = await this.calendars.listSlots(calendarSlug, new Date(from), new Date(to));
+    const slots = await translateScheduling(
+      this.routes.listSlots.execute(calendarSlug, new Date(from), new Date(to)),
+    );
     return slots;
   }
 }

@@ -12,9 +12,32 @@ The design is settled; the app skeleton exists and features are built on it issu
 - `docs/spec.md` — the source of truth for behavior: roles, domain rules, screens, error codes, stack.
 - `docs/reference/` — screenshots of Hexlet's reference app, a visual reference only; the spec deliberately extends
   it (registration, roles, Owner settings).
-- `GLOSSARY.md` — canonical domain terms (Владелец, Гость, Администратор, Слот, Бронирование, Горизонт планирования,
-  Лимит бронирований, Адрес календаря). Use these terms in code, docs and commits; avoid the listed synonyms.
+- `GLOSSARY.md` — canonical domain terms (Владелец, Календарь, Гость, Администратор, Слот, Бронирование,
+  Горизонт планирования, Лимит бронирований, Адрес календаря). Use these terms in code, docs and commits; avoid the
+  listed synonyms.
 - `docs/adr/` — decisions that look surprising; don't "fix" them without a new ADR.
+
+## Backend
+
+Планирование is the only hexagonal context. Read ADR-0006 before moving a booking rule onto the Календарь aggregate
+or reading through it. Идентификация (`accounts/`) and Администрирование (`admin/`) stay in place. Предстоящие
+Бронирования stay in `owner/`.
+
+```
+backend/src/
+  shared-kernel/     TimeZone, CalendarSlug
+  scheduling/
+    domain/          Календарь, Бронирование, the Слот grid, value objects, errors
+    domain/ports/    calendar repository, UnitOfWork, Clock, read queries
+    application/     book a Слот, list Слоты, public Календарь, settings
+    infrastructure/  Drizzle adapters and the system clock
+    http/            calendar and settings controllers; domain errors become problem+json
+    scheduling.module.ts
+```
+
+dependency-cruiser forbids, as errors: the domain importing Nest, Drizzle, Express, infrastructure or HTTP; scenarios
+importing infrastructure or HTTP; infrastructure imported from anywhere but `scheduling.module.ts`. Domain and
+scenarios may import `shared-kernel/`.
 
 ## Commands
 

@@ -1,5 +1,5 @@
 /**
- * Bookable Слоты on the 09:00–17:30 grid in the Владелец's time zone.
+ * Bookable Слоты on the 09:00–17:30 grid in the Календарь's time zone.
  * `now` is injected so "today" and a Слот that has already started do not depend on the clock.
  * The grid is local time: a DST transition changes the UTC instant of 09:00, not the wall clock.
  */
