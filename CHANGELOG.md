@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.6.0...v0.7.0) (2026-11-01)
+
+
+### Features
+
+* **calendars:** cap a guest email at the Лимит бронирований ([#37](https://github.com/Geschoss/ai-for-developers-project-386/issues/37)) ([004712a](https://github.com/Geschoss/ai-for-developers-project-386/commit/004712a287676ce235336741c9d5bc66a6433f30))
+
 ## [0.6.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.5.0...v0.6.0) (2026-10-30)
 
 
