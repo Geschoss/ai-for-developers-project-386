@@ -20,7 +20,10 @@ This repo is single-context:
 └── docs/adr/
     ├── 0001-openapi-request-validation.md
     ├── 0002-drizzle-orm.md
-    └── 0003-booking-invariants-in-db.md
+    ├── 0003-booking-invariants-in-db.md
+    ├── 0004-oxlint-oxfmt.md
+    ├── 0005-session-cookie-secure.md
+    └── 0006-scheduling-hexagon.md
 ```
 
 ## Use the glossary's vocabulary
