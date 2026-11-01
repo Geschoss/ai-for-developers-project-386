@@ -5,11 +5,18 @@ import type { components } from "spec/api";
 import { sessionIdFrom } from "../accounts/session-cookie.js";
 import { OwnerService } from "./owner.service.js";
 
+type BookingList = components["schemas"]["BookingList"];
 type OwnerSettings = components["schemas"]["OwnerSettings"];
 
 @Controller("owner")
 export class OwnerController {
   public constructor(@Inject(OwnerService) private readonly owners: OwnerService) {}
+
+  @Get("bookings")
+  public async listUpcoming(@Req() request: Request): Promise<BookingList> {
+    const upcoming = await this.owners.listUpcoming(sessionIdFrom(request));
+    return { bookings: upcoming };
+  }
 
   @Get("settings")
   public async getSettings(@Req() request: Request): Promise<OwnerSettings> {
