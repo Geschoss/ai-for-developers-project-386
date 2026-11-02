@@ -41,3 +41,8 @@ ALTER TABLE "bookings" ALTER COLUMN "event_type_id" SET NOT NULL;
 ALTER TABLE "bookings" ADD CONSTRAINT "bookings_event_type_id_event_types_id_fk" FOREIGN KEY ("event_type_id") REFERENCES "public"."event_types"("id") ON DELETE cascade ON UPDATE no action;
 --> statement-breakpoint
 ALTER TABLE "bookings" ADD CONSTRAINT "bookings_end_after_start" CHECK (end_at > start_at);
+--> statement-breakpoint
+ALTER TABLE "bookings" ADD CONSTRAINT "bookings_no_overlap" EXCLUDE USING gist (
+	calendar_id WITH =,
+	tstzrange(start_at, end_at, '[)') WITH &&
+);

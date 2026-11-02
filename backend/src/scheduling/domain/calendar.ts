@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { CalendarSlug } from "../../shared-kernel/calendar-slug.js";
 import { TimeZone } from "../../shared-kernel/time-zone.js";
-import { Booking, type StoredBooking } from "./booking.js";
+import { Booking, type StoredBooking, intervalsOverlap } from "./booking.js";
 import { DailyBookingLimit } from "./daily-booking-limit.js";
 import { EventType, type StoredEventType } from "./event-type.js";
 import { PlanningHorizon } from "./planning-horizon.js";
@@ -207,10 +207,9 @@ class Calendar {
     return count;
   }
 
-  // Broken on purpose (#72): only the same start counts as taken, so 10:30 slips past 10:00–11:00.
-  private rejectOverlap(start: Date, _end: Date): void {
+  private rejectOverlap(start: Date, end: Date): void {
     for (const booking of this.bookings) {
-      if (booking.startAt.getTime() === start.getTime()) {
+      if (intervalsOverlap({ end, start }, { end: booking.endAt, start: booking.startAt })) {
         throw new SchedulingError("slot_taken");
       }
     }
