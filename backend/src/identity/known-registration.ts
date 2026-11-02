@@ -72,4 +72,4 @@ const rethrowConflict = (error: unknown): void => {
   throw error;
 };
 
-export { knownCalendarSlug, knownTimeZone, rethrowConflict };
+export { knownCalendarSlug, knownTimeZone, registrationConflict, rethrowConflict };

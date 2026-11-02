@@ -158,15 +158,23 @@ describe("GET /api/admin/owners", () => {
     const response = await listOwners(sessionPair(loggedIn.headers["set-cookie"]));
 
     expect(response.status).toBe(200);
-    // The 403 test above registered `forbidden-owner` first; the admin is never listed.
-    // `toMatchObject` still demands exactly these three; the contract check covers `registeredAt`.
+    // Startup seeds the demo Владелец, then the 403 test registered `forbidden-owner`.
+    // The admin is never listed. `toMatchObject` demands this order; the contract check covers `registeredAt`.
     expect(response.body).toMatchObject({
-      owners: ["forbidden-owner", "first-listed", "second-listed"].map((slug) => ({
-        calendarSlug: slug,
-        email: `${slug}@example.com`,
-        name: `Владелец ${slug}`,
-        timeZone: "Asia/Tokyo",
-      })),
+      owners: [
+        {
+          calendarSlug: "demo",
+          email: "demo@example.com",
+          name: "Демо",
+          timeZone: "Europe/Moscow",
+        },
+        ...["forbidden-owner", "first-listed", "second-listed"].map((slug) => ({
+          calendarSlug: slug,
+          email: `${slug}@example.com`,
+          name: `Владелец ${slug}`,
+          timeZone: "Asia/Tokyo",
+        })),
+      ],
     });
   });
 });
