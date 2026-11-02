@@ -25,7 +25,8 @@ This repo is single-context:
     ├── 0005-session-cookie-secure.md
     ├── 0006-scheduling-hexagon.md
     ├── 0007-frontend-contexts.md
-    └── 0008-calendar-table.md
+    ├── 0008-calendar-table.md
+    └── 0009-booking-interval-exclusion.md
 ```
 
 ## Use the glossary's vocabulary
