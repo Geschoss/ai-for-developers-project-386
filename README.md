@@ -56,6 +56,15 @@ Postgres 18 во Frankfurt, оба на бесплатном плане. Render 
 `ADMIN_EMAIL` и `ADMIN_PASSWORD` вводятся в панели Render при создании Blueprint и в репозиторий не попадают.
 Бесплатный Postgres живёт 30 дней.
 
+### Render MCP
+
+Подключение Cursor к Render. Файл `.cursor/mcp.json` берёт ключ из окружения (`RENDER_API_KEY`) и не содержит сам ключ.
+
+1. Создайте ключ: https://dashboard.render.com/u/settings#api-keys
+2. Экспортируйте его в окружение как `RENDER_API_KEY`. Ключ не коммитьте.
+3. Перезапустите Cursor.
+4. Проверьте подключение: запросите список сервисов Render.
+
 Проверки качества кода: `mise run check` (oxlint, oxfmt, tsc, knip, dependency-cruiser). По отдельности: `mise run lint`, `format`, `fix`, `typecheck`, `knip`, `depcruise`. Тесты: `pnpm test` (нужен запущенный Docker), `pnpm e2e`.
 
 ## Использование
