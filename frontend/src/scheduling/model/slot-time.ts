@@ -2,14 +2,10 @@ import type { components } from "spec/api";
 
 type Slot = components["schemas"]["Slot"];
 
-// oxlint-disable-next-line eslint/no-magic-numbers -- a Слот is 30 minutes
-const slotLengthMinutes = 30;
 // oxlint-disable-next-line eslint/no-magic-numbers -- seconds in a minute
 const secondsPerMinute = 60;
 // oxlint-disable-next-line eslint/no-magic-numbers -- milliseconds in a second
 const msPerSecond = 1000;
-
-const slotLengthMs = slotLengthMinutes * secondsPerMinute * msPerSecond;
 
 interface DayGroup {
   free: number;
@@ -24,10 +20,10 @@ const clock = (instant: Date, timeZone: string): string =>
     timeZone,
   }).format(instant);
 
-/** `09:00–09:30` in `timeZone`. */
-const slotRange = (startAt: string, timeZone: string): string => {
+/** `09:00–09:30` in `timeZone`. The length is the chosen Тип события. */
+const slotRange = (startAt: string, timeZone: string, durationMinutes: number): string => {
   const start = new Date(startAt);
-  const end = new Date(start.getTime() + slotLengthMs);
+  const end = new Date(start.getTime() + durationMinutes * secondsPerMinute * msPerSecond);
   return `${clock(start, timeZone)}–${clock(end, timeZone)}`;
 };
 

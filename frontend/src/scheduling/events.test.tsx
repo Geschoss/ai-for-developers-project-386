@@ -25,12 +25,14 @@ const upcoming = {
   bookings: [
     {
       createdAt: "2026-03-27T11:40:00.000Z",
+      eventTypeName: "Звонок",
       guest: { email: "boris@example.com", name: "Борис" },
       id: "11111111-1111-4111-8111-111111111111",
       startAt: "2026-03-28T06:00:00.000Z",
     },
     {
       createdAt: "2026-03-27T12:00:00.000Z",
+      eventTypeName: "Созвон",
       guest: { email: "vera@example.com", name: "Вера" },
       id: "22222222-2222-4222-8222-222222222222",
       startAt: "2026-03-28T06:30:00.000Z",
@@ -52,6 +54,7 @@ const backend =
 interface ShownGuest {
   created: string;
   email: string;
+  eventType: string;
   name: string;
   slot: string;
 }
@@ -59,6 +62,7 @@ interface ShownGuest {
 const expectGuest = (guest: ShownGuest): void => {
   expect(screen.getByText(guest.name)).toBeInTheDocument();
   expect(screen.getByText(guest.email)).toBeInTheDocument();
+  expect(screen.getByText(guest.eventType)).toBeInTheDocument();
   expect(screen.getByText(guest.slot)).toBeInTheDocument();
   expect(screen.getByText(guest.created)).toBeInTheDocument();
 };
@@ -90,12 +94,14 @@ describe("предстоящие события", () => {
     expectGuest({
       created: "Создано: 27.03.2026, 14:40",
       email: "boris@example.com",
+      eventType: "Звонок",
       name: "Борис",
       slot: "Слот: 2026-03-28-09:00",
     });
     expectGuest({
       created: "Создано: 27.03.2026, 15:00",
       email: "vera@example.com",
+      eventType: "Созвон",
       name: "Вера",
       slot: "Слот: 2026-03-28-09:30",
     });

@@ -46,3 +46,6 @@ model Forbidden is Problem<"forbidden", 403>;
 
 /** Неизвестный Адрес календаря. */
 model CalendarNotFound is Problem<"calendar_not_found", 404>;
+
+/** Id Типа события не принадлежит этому Календарю. */
+model EventTypeNotFound is Problem<"event_type_not_found", 404>;

@@ -22,8 +22,8 @@ const booked = (calendar: Calendar, startAt: Date): BookingConfirmation => ({
 });
 
 /**
- * Books one Слот. The Календарь is loaded already locked, then `book`, then save.
- * The unique index remains the backstop when two Гости pass the in-memory check (ADR-0003).
+ * Books one Слот of the chosen Тип события. The Календарь is loaded already locked, then `book`, then save.
+ * The exclusion constraint remains the backstop when two Гости pass the in-memory check (ADR-0003, ADR-0009).
  */
 @Injectable()
 class BookSlot {
@@ -44,6 +44,7 @@ class BookSlot {
     const confirmation = await this.unitOfWork.run(async () => {
       const calendar = await this.lockedCalendar(slug, startAt);
       calendar.book({
+        eventTypeId: booking.eventTypeId,
         guestEmail: booking.guest.email,
         guestName: booking.guest.name,
         now,

@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { testAdmin as admin, testAppOptions } from "./app-options.js";
 import { expectMatchesSpec } from "./contract.js";
+import { openEventType } from "./open-event-type.js";
 
 const ownerTimeZone = "Europe/Moscow";
 /** 08:00 on 2026-11-02 in Europe/Moscow, before the first Слот of the day. */
@@ -16,6 +17,8 @@ const firstSlot = "2026-11-02T06:00:00.000Z";
 const secondSlot = "2026-11-02T06:30:00.000Z";
 // oxlint-disable-next-line eslint/no-magic-numbers -- a Бронирование created during the test is only seconds old
 const createdRecentlyMs = 120_000;
+// oxlint-disable-next-line eslint/no-magic-numbers -- the grid these tests book is 30 minutes
+const halfHourMinutes = 30;
 
 interface Guest {
   email: string;
@@ -24,6 +27,7 @@ interface Guest {
 
 interface ListedBooking {
   createdAt: string;
+  eventTypeName: string;
   guest: Guest;
   id: string;
   startAt: string;
@@ -31,6 +35,7 @@ interface ListedBooking {
 
 interface Owner {
   cookie: string;
+  eventTypeId: string;
   slug: string;
 }
 
@@ -84,6 +89,7 @@ const isBooking = (value: unknown): value is ListedBooking => {
   }
   return (
     typeof value["createdAt"] === "string" &&
+    typeof value["eventTypeName"] === "string" &&
     typeof value["id"] === "string" &&
     typeof value["startAt"] === "string"
   );
@@ -113,7 +119,12 @@ const registerOwner = async (): Promise<Owner> => {
     });
   expectMatchesSpec(response, "post", "/api/auth/register");
   expect(response.status).toBe(201);
-  return { cookie: sessionPair(response.headers["set-cookie"]), slug };
+  const cookie = sessionPair(response.headers["set-cookie"]);
+  const eventTypeId = await openEventType(runningApp(), cookie, {
+    durationMinutes: halfHourMinutes,
+    name: "Звонок",
+  });
+  return { cookie, eventTypeId, slug };
 };
 
 const adminCookie = async (): Promise<string> => {
@@ -125,6 +136,7 @@ const adminCookie = async (): Promise<string> => {
 
 interface GuestBooking {
   email: string;
+  eventTypeId: string;
   name: string;
   slug: string;
   startAt: string;
@@ -133,7 +145,11 @@ interface GuestBooking {
 const book = async (booking: GuestBooking): Promise<void> => {
   const response = await request(httpServer(runningApp()))
     .post(`/api/calendars/${booking.slug}/bookings`)
-    .send({ guest: { email: booking.email, name: booking.name }, startAt: booking.startAt });
+    .send({
+      eventTypeId: booking.eventTypeId,
+      guest: { email: booking.email, name: booking.name },
+      startAt: booking.startAt,
+    });
   expectMatchesSpec(response, "post", "/api/calendars/{calendarSlug}/bookings");
   expect(response.status).toBe(201);
 };
@@ -173,6 +189,11 @@ afterAll(async () => {
   }
 });
 
+const expectFresh = (earlier: string, later: string): void => {
+  createdJustNow(earlier);
+  createdJustNow(later);
+};
+
 const expectOwnBookings = (response: request.Response): void => {
   const listed = bookingsOf(response);
   const [earlier, later] = listed;
@@ -185,15 +206,33 @@ const expectOwnBookings = (response: request.Response): void => {
     { email: "boris@example.com", name: "Борис" },
     { email: "vera@example.com", name: "Вера" },
   ]);
+  expect(listed.map((booking) => booking.eventTypeName)).toEqual(["Звонок", "Звонок"]);
   expect(JSON.stringify(response.body)).not.toContain("gleb@example.com");
-  createdJustNow(earlier.createdAt);
-  createdJustNow(later.createdAt);
+  expectFresh(earlier.createdAt, later.createdAt);
 };
 
 const fillCalendars = async (owner: Owner, other: Owner): Promise<void> => {
-  await book({ email: "vera@example.com", name: "Вера", slug: owner.slug, startAt: secondSlot });
-  await book({ email: "boris@example.com", name: "Борис", slug: owner.slug, startAt: firstSlot });
-  await book({ email: "gleb@example.com", name: "Глеб", slug: other.slug, startAt: firstSlot });
+  await book({
+    email: "vera@example.com",
+    eventTypeId: owner.eventTypeId,
+    name: "Вера",
+    slug: owner.slug,
+    startAt: secondSlot,
+  });
+  await book({
+    email: "boris@example.com",
+    eventTypeId: owner.eventTypeId,
+    name: "Борис",
+    slug: owner.slug,
+    startAt: firstSlot,
+  });
+  await book({
+    email: "gleb@example.com",
+    eventTypeId: other.eventTypeId,
+    name: "Глеб",
+    slug: other.slug,
+    startAt: firstSlot,
+  });
 };
 
 describe("GET /api/owner/bookings", () => {
@@ -222,8 +261,20 @@ describe("GET /api/owner/bookings", () => {
 
   it("omits a Бронирование once its start has passed", async () => {
     const owner = await registerOwner();
-    await book({ email: "boris@example.com", name: "Борис", slug: owner.slug, startAt: firstSlot });
-    await book({ email: "vera@example.com", name: "Вера", slug: owner.slug, startAt: secondSlot });
+    await book({
+      email: "boris@example.com",
+      eventTypeId: owner.eventTypeId,
+      name: "Борис",
+      slug: owner.slug,
+      startAt: firstSlot,
+    });
+    await book({
+      email: "vera@example.com",
+      eventTypeId: owner.eventTypeId,
+      name: "Вера",
+      slug: owner.slug,
+      startAt: secondSlot,
+    });
     now = new Date(firstSlot);
 
     const listed = bookingsOf(await listUpcoming(owner.cookie));

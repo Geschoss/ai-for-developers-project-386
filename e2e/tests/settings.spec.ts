@@ -37,6 +37,34 @@ const expectSaved = async (page: Page): Promise<void> => {
   await expect(page.getByLabel("Лимит бронирований")).toHaveValue("18");
 };
 
+const createdTypeId = (body: unknown): string => {
+  if (typeof body !== "object" || body === null || !("id" in body) || typeof body.id !== "string") {
+    throw new TypeError("Тип события response has no id");
+  }
+  return body.id;
+};
+
+const fillType = async (page: Page): Promise<void> => {
+  await page.getByLabel("Название").fill("Звонок");
+  await page.getByLabel("Описание").fill("Короткий звонок");
+  await page.getByLabel("Длительность, минуты").fill("30");
+};
+
+const addEventType = async (page: Page): Promise<void> => {
+  await fillType(page);
+  const created = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/owner/event-types") && response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Добавить" }).click();
+  const response = await created;
+  const createdId = createdTypeId(await response.json());
+  await expect(page.getByText("Звонок", { exact: true })).toBeVisible();
+  await expect(page.getByText("Короткий звонок")).toBeVisible();
+  await expect(page.getByText("30 минут")).toBeVisible();
+  await expect(page.getByText(createdId)).toHaveCount(0);
+};
+
 test("owner registers, changes settings, and sees them after reload", async ({ page }) => {
   const suffix = String(Date.now());
   await registerOwner(page, `owner-${suffix}@example.com`, `owner-${suffix}`);
@@ -47,4 +75,5 @@ test("owner registers, changes settings, and sees them after reload", async ({ p
   await page.reload();
   await expectSaved(page);
   await expect(page.getByText("Настройки сохранены")).toHaveCount(0);
+  await addEventType(page);
 });

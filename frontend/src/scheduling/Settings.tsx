@@ -6,6 +6,7 @@ import { api } from "../shared/api";
 import { forget } from "../shared/forget";
 import { FormAlert } from "../shared/FormAlert";
 import { errorsFor, type FieldErrors } from "../shared/problems";
+import { EventTypeForm } from "./event-type-form";
 import { checked, draftFrom, type OwnerSettings } from "./settings-draft";
 import { SettingsFields, type Sink } from "./settings-fields";
 
@@ -151,7 +152,7 @@ const SettingsBody = ({
   return <SettingsForm initial={settings} />;
 };
 
-/** Часовой пояс, Горизонт планирования and Лимит бронирований of the current Владелец. */
+/** Часовой пояс, Горизонт планирования, Лимит бронирований and Типы событий of the current Владелец. */
 const Settings = (): ReactElement => {
   const [settings, setSettings] = useState<OwnerSettings | "failed">();
 
@@ -168,6 +169,7 @@ const Settings = (): ReactElement => {
         Настройки
       </Title>
       <SettingsBody settings={settings} />
+      <EventTypeForm />
     </Container>
   );
 };

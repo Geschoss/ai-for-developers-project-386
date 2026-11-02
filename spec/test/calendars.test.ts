@@ -16,22 +16,27 @@ describe("getPublicCalendar", () => {
 });
 
 describe("listSlots", () => {
-  const range = { from: "2026-11-01T00:00:00Z", to: "2026-12-01T00:00:00Z" };
+  const eventTypeId = "11111111-1111-4111-8111-111111111111";
+  const range = { eventTypeId, from: "2026-11-01T00:00:00Z", to: "2026-12-01T00:00:00Z" };
 
   it("is public", async () => {
     await request(app).get("/api/calendars/anna-01/slots").query(range).expect(200);
   });
 
-  it.each([{ from: range.from }, { to: range.to }, { from: "2026-11-01", to: "2026-12-01" }])(
-    "rejects range %j",
-    async (query) => {
-      await request(app).get("/api/calendars/anna-01/slots").query(query).expect(400);
-    },
-  );
+  it.each([
+    { from: range.from, to: range.to },
+    { eventTypeId, from: range.from },
+    { eventTypeId, to: range.to },
+    { eventTypeId, from: "2026-11-01", to: "2026-12-01" },
+    { eventTypeId: "not-a-uuid", from: range.from, to: range.to },
+  ])("rejects range %j", async (query) => {
+    await request(app).get("/api/calendars/anna-01/slots").query(query).expect(400);
+  });
 });
 
 describe("createBooking", () => {
   const booking = {
+    eventTypeId: "11111111-1111-4111-8111-111111111111",
     guest: { email: "boris@example.com", name: "Борис" },
     startAt: "2026-11-02T06:00:00Z",
   };

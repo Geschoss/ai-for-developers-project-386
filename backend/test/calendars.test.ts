@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { testAppOptions } from "./app-options.js";
 import { expectMatchesSpec } from "./contract.js";
+import { openEventType } from "./open-event-type.js";
 
 // oxlint-disable-next-line eslint/no-magic-numbers -- spec: a new Владелец starts with a horizon of 14 days
 const defaultPlanningHorizonDays = 14;
@@ -50,10 +51,34 @@ const runningApp = (): INestApplication => {
 
 let sequence = 0;
 
-const registerOwner = async (timeZone = "Europe/Moscow"): Promise<string> => {
+const firstHeader = (header: string | string[] | undefined): string | undefined => {
+  if (Array.isArray(header)) {
+    return header[0];
+  }
+  return header;
+};
+
+const sessionPair = (header: string | string[] | undefined): string => {
+  const raw = firstHeader(header);
+  if (raw === undefined) {
+    throw new Error("Set-Cookie is missing");
+  }
+  const [pair] = raw.split(";");
+  if (pair === undefined || !pair.startsWith("sid=")) {
+    throw new Error("Set-Cookie is missing sid");
+  }
+  return pair;
+};
+
+interface Owner {
+  cookie: string;
+  slug: string;
+}
+
+const registerOwner = async (timeZone = "Europe/Moscow"): Promise<Owner> => {
   sequence += 1;
   const slug = `guest-${sequence}`;
-  await request(httpServer(runningApp()))
+  const response = await request(httpServer(runningApp()))
     .post("/api/auth/register")
     .send({
       calendarSlug: slug,
@@ -61,9 +86,9 @@ const registerOwner = async (timeZone = "Europe/Moscow"): Promise<string> => {
       name: "Анна",
       password: "long-enough",
       timeZone,
-    })
-    .expect(201);
-  return slug;
+    });
+  expect(response.status).toBe(201);
+  return { cookie: sessionPair(response.headers["set-cookie"]), slug };
 };
 
 const readCalendar = async (slug: string): Promise<request.Response> => {
@@ -74,11 +99,12 @@ const readCalendar = async (slug: string): Promise<request.Response> => {
 
 const listSlots = async (
   slug: string,
+  eventTypeId: string,
   query: { from: string; to: string } = wideRange,
 ): Promise<request.Response> => {
   const response = await request(httpServer(runningApp()))
     .get(`/api/calendars/${slug}/slots`)
-    .query(query);
+    .query({ ...query, eventTypeId });
   expectMatchesSpec(response, "get", "/api/calendars/{calendarSlug}/slots");
   return response;
 };
@@ -160,8 +186,11 @@ const insertBooking = async (slug: string, startAt: string): Promise<void> => {
   await client.connect();
   try {
     const inserted = await client.query(
-      `insert into bookings (id, calendar_id, guest_name, guest_email, start_at)
-       select $1, id, $2, $3, $4 from calendars where slug = $5`,
+      `insert into bookings (id, calendar_id, event_type_id, guest_name, guest_email, start_at, end_at)
+       select $1, calendars.id, event_types.id, $2, $3, $4, $4::timestamptz + interval '30 minutes'
+       from calendars
+       join event_types on event_types.calendar_id = calendars.id
+       where calendars.slug = $5`,
       [randomUUID(), guestName, guestEmail, startAt, slug],
     );
     expect(inserted.rowCount).toBe(1);
@@ -188,11 +217,12 @@ afterAll(async () => {
 
 describe("GET /api/calendars/:slug", () => {
   it("returns the public calendar and no account data", async () => {
-    const slug = await registerOwner();
-    const response = await readCalendar(slug);
+    const owner = await registerOwner();
+    const response = await readCalendar(owner.slug);
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
+      eventTypes: [],
       ownerName: "Анна",
       planningHorizonDays: defaultPlanningHorizonDays,
       timeZone: "Europe/Moscow",
@@ -208,28 +238,39 @@ describe("GET /api/calendars/:slug", () => {
   });
 });
 
+const unknownType = "11111111-1111-4111-8111-111111111111";
+
+const halfHourType = async (owner: Owner): Promise<string> => {
+  const eventTypeId = await openEventType(runningApp(), owner.cookie, {
+    durationMinutes: slotLengthMinutes,
+  });
+  return eventTypeId;
+};
+
 describe("GET /api/calendars/:slug/slots", () => {
   it("lists future Слоты on the owner's grid and nothing about a Гость", async () => {
-    const slug = await registerOwner();
+    const owner = await registerOwner();
+    const eventTypeId = await halfHourType(owner);
     const before = Date.now();
-    const response = await listSlots(slug);
+    const response = await listSlots(owner.slug, eventTypeId);
 
     expect(response.status).toBe(200);
     expectBookable(slotsOf(response), before);
   });
 
   it("marks a stored Бронирование as booked without the Гость's name or email", async () => {
-    const slug = await registerOwner();
-    const furthest = furthestSlot(slotsOf(await listSlots(slug)));
-    await insertBooking(slug, furthest.startAt);
-    const response = await listSlots(slug);
+    const owner = await registerOwner();
+    const eventTypeId = await halfHourType(owner);
+    const furthest = furthestSlot(slotsOf(await listSlots(owner.slug, eventTypeId)));
+    await insertBooking(owner.slug, furthest.startAt);
+    const response = await listSlots(owner.slug, eventTypeId);
 
     expectHiddenGuest(response, furthest.startAt);
   });
 
   it("returns no Слоты when the window is empty", async () => {
-    const slug = await registerOwner();
-    const response = await listSlots(slug, {
+    const owner = await registerOwner();
+    const response = await listSlots(owner.slug, await halfHourType(owner), {
       from: "2026-12-02T00:00:00.000Z",
       to: "2026-12-01T00:00:00.000Z",
     });
@@ -239,7 +280,7 @@ describe("GET /api/calendars/:slug/slots", () => {
   });
 
   it("answers calendar_not_found for an unknown Адрес календаря", async () => {
-    const response = await listSlots("missing-owner");
+    const response = await listSlots("missing-owner", unknownType);
 
     expect(response.status).toBe(404);
     expect(response.body).toMatchObject({ code: "calendar_not_found" });

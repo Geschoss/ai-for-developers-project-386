@@ -1,5 +1,7 @@
 import { type Page, expect, test } from "@playwright/test";
 
+import { openHalfHourType } from "./event-type.js";
+
 // oxlint-disable-next-line eslint/no-magic-numbers -- a Слот is 30 minutes
 const slotLengthMinutes = 30;
 // oxlint-disable-next-line eslint/no-magic-numbers -- seconds in a minute
@@ -71,9 +73,13 @@ const firstSlot = (slots: ListedSlot[]): ListedSlot => {
   return slot;
 };
 
-const readFirstStart = async (page: Page, slug: string): Promise<Date> => {
+const readFirstStart = async (page: Page, slug: string, eventTypeId: string): Promise<Date> => {
   const listed = await page.request.get(`/api/calendars/${slug}/slots`, {
-    params: { from: "2020-01-01T00:00:00.000Z", to: "2040-01-01T00:00:00.000Z" },
+    params: {
+      eventTypeId,
+      from: "2020-01-01T00:00:00.000Z",
+      to: "2040-01-01T00:00:00.000Z",
+    },
   });
   expect(listed.ok()).toBeTruthy();
   const body: unknown = await listed.json();
@@ -101,10 +107,12 @@ test("guest in another time zone sees the banner and a shifted Слот", async 
   const suffix = String(Date.now());
   const slug = `guest-${suffix}`;
   await registerOwner(page, `${slug}@example.com`, slug);
+  const eventTypeId = await openHalfHourType(page);
   await page.getByRole("link", { name: "Мой календарь" }).click();
   await expect(page).toHaveURL(new RegExp(`/u/${slug}$`, "u"));
   await expect(page.getByRole("heading", { name: "Запись на звонок у Анна" })).toBeVisible();
-  await expectShiftedSlot(page, await readFirstStart(page, slug));
+  await expect(page.getByRole("radio", { name: "Звонок" })).toBeChecked();
+  await expectShiftedSlot(page, await readFirstStart(page, slug, eventTypeId));
 });
 
 test("unknown Адрес календаря is not found", async ({ page }) => {

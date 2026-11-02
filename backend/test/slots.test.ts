@@ -98,6 +98,7 @@ const lastSlot = (slots: Date[]): Date => {
 
 const daySlots = (timeZone: string, now: string, planningHorizonDays = 1): Date[] =>
   bookableSlots({
+    durationMinutes: slotLengthMinutes,
     from: wideFrom,
     now: new Date(now),
     planningHorizonDays,
@@ -112,6 +113,22 @@ describe("bookableSlots grid", () => {
     expectFullGrid("Europe/Moscow", slots);
     expect(firstSlot(slots).toISOString()).toBe("2026-11-02T06:00:00.000Z");
     expect(lastSlot(slots).toISOString()).toBe("2026-11-02T14:30:00.000Z");
+  });
+
+  it("ends a 60-minute Слот at 18:00, so the last start is 17:00", () => {
+    // oxlint-disable-next-line eslint/no-magic-numbers -- an hour-long Тип события
+    const hourMinutes = 60;
+    const slots = bookableSlots({
+      durationMinutes: hourMinutes,
+      from: wideFrom,
+      now: new Date("2026-11-02T01:00:00.000Z"),
+      planningHorizonDays: 1,
+      timeZone: "Europe/Moscow",
+      to: wideTo,
+    });
+
+    expect(firstSlot(slots).toISOString()).toBe("2026-11-02T06:00:00.000Z");
+    expect(lastSlot(slots).toISOString()).toBe("2026-11-02T14:00:00.000Z");
   });
 
   it("keeps the full grid on a weekend", () => {
@@ -141,6 +158,7 @@ describe("bookableSlots horizon and window", () => {
 
   it("returns Слоты that start in [from, to)", () => {
     const slots = bookableSlots({
+      durationMinutes: slotLengthMinutes,
       from: new Date("2026-11-02T06:30:00.000Z"),
       now: new Date("2026-11-02T01:00:00.000Z"),
       planningHorizonDays: 1,

@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { testAppOptions } from "./app-options.js";
 import { expectMatchesSpec } from "./contract.js";
+import { openEventType } from "./open-event-type.js";
 
 const wideRange = { from: "2020-01-01T00:00:00.000Z", to: "2040-01-01T00:00:00.000Z" };
 const guestName = "Борис";
@@ -28,6 +29,8 @@ const moscowAfternoon = "2026-11-02T14:30:00.000Z";
 const defaultDailyBookingLimit = 2;
 // oxlint-disable-next-line eslint/no-magic-numbers -- today and the next day
 const twoDayHorizon = 2;
+// oxlint-disable-next-line eslint/no-magic-numbers -- the grid these tests book is 30 minutes
+const halfHourMinutes = 30;
 
 interface Slot {
   startAt: string;
@@ -36,6 +39,7 @@ interface Slot {
 
 interface Owner {
   cookie: string;
+  eventTypeId: string;
   slug: string;
 }
 
@@ -119,7 +123,11 @@ const registerOwner = async (timeZone: string): Promise<Owner> => {
     });
   expectMatchesSpec(response, "post", "/api/auth/register");
   expect(response.status).toBe(201);
-  return { cookie: sessionPair(response.headers["set-cookie"]), slug };
+  const cookie = sessionPair(response.headers["set-cookie"]);
+  const eventTypeId = await openEventType(runningApp(), cookie, {
+    durationMinutes: halfHourMinutes,
+  });
+  return { cookie, eventTypeId, slug };
 };
 
 const writeHorizon = async (
@@ -138,7 +146,11 @@ const writeHorizon = async (
 const book = async (owner: Owner, startAt: string, cookie?: string): Promise<request.Response> => {
   const pending = request(httpServer(runningApp()))
     .post(`/api/calendars/${owner.slug}/bookings`)
-    .send({ guest: { email: "boris@example.com", name: guestName }, startAt });
+    .send({
+      eventTypeId: owner.eventTypeId,
+      guest: { email: "boris@example.com", name: guestName },
+      startAt,
+    });
   if (cookie !== undefined) {
     pending.set("Cookie", cookie);
   }
@@ -147,10 +159,10 @@ const book = async (owner: Owner, startAt: string, cookie?: string): Promise<req
   return response;
 };
 
-const listSlots = async (slug: string): Promise<Slot[]> => {
+const listSlots = async (owner: Owner): Promise<Slot[]> => {
   const response = await request(httpServer(runningApp()))
-    .get(`/api/calendars/${slug}/slots`)
-    .query(wideRange);
+    .get(`/api/calendars/${owner.slug}/slots`)
+    .query({ ...wideRange, eventTypeId: owner.eventTypeId });
   expectMatchesSpec(response, "get", "/api/calendars/{calendarSlug}/slots");
   expect(response.status).toBe(200);
   return slotsOf(response);
@@ -208,7 +220,7 @@ describe("booking rules", () => {
     await writeHorizon(owner, 1, auckland);
     await writeHorizon(owner, twoDayHorizon, auckland);
 
-    const slots = await listSlots(owner.slug);
+    const slots = await listSlots(owner);
     expect(slots).toContainEqual({ startAt: firstSlotAfterAucklandToday, status: "booked" });
   });
 

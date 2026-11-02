@@ -38,17 +38,19 @@ const FreeSlot = ({
 );
 
 const SlotRow = ({
+  durationMinutes,
   guestTimeZone,
   onSelect,
   selected,
   slot,
 }: {
+  durationMinutes: number;
   guestTimeZone: string;
   onSelect: (startAt: string) => void;
   selected: string | undefined;
   slot: Slot;
 }): ReactElement => {
-  const range = slotRange(slot.startAt, guestTimeZone);
+  const range = slotRange(slot.startAt, guestTimeZone, durationMinutes);
   if (slot.status === "booked") {
     return (
       <Group justify="space-between">
@@ -71,12 +73,14 @@ const SlotRow = ({
 /** Слоты of the day the Гость picked. A free one can be chosen. */
 const SlotList = ({
   day,
+  durationMinutes,
   group,
   guestTimeZone,
   onSelect,
   slotStart,
 }: {
   day: string | undefined;
+  durationMinutes: number;
   group: DayGroup | undefined;
   guestTimeZone: string;
   onSelect: (startAt: string) => void;
@@ -91,6 +95,7 @@ const SlotList = ({
       {group.slots.map((slot) => (
         <SlotRow
           key={slot.startAt}
+          durationMinutes={durationMinutes}
           guestTimeZone={guestTimeZone}
           selected={slotStart}
           slot={slot}

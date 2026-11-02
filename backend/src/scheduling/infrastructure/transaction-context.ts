@@ -16,4 +16,4 @@ const currentTransaction = (): Transaction => {
   return transaction;
 };
 
-export { currentTransaction, transactionStorage };
+export { type Transaction, currentTransaction, transactionStorage };

@@ -1,5 +1,7 @@
 import { type Browser, type Page, expect, test } from "@playwright/test";
 
+import { openHalfHourType } from "./event-type.js";
+
 // oxlint-disable-next-line eslint/no-magic-numbers -- a Слот is 30 minutes
 const slotLengthMinutes = 30;
 // oxlint-disable-next-line eslint/no-magic-numbers -- seconds in a minute
@@ -87,9 +89,13 @@ const firstSlot = (slots: ListedSlot[]): ListedSlot => {
   return slot;
 };
 
-const readFirstStart = async (page: Page, slug: string): Promise<Date> => {
+const readFirstStart = async (page: Page, slug: string, eventTypeId: string): Promise<Date> => {
   const listed = await page.request.get(`/api/calendars/${slug}/slots`, {
-    params: { from: "2020-01-01T00:00:00.000Z", to: "2040-01-01T00:00:00.000Z" },
+    params: {
+      eventTypeId,
+      from: "2020-01-01T00:00:00.000Z",
+      to: "2040-01-01T00:00:00.000Z",
+    },
   });
   expect(listed.ok()).toBeTruthy();
   const body: unknown = await listed.json();
@@ -121,6 +127,7 @@ const bookAsGuest = async (browser: Browser, slug: string, start: Date): Promise
 const expectListed = async (page: Page, start: Date): Promise<void> => {
   await expect(page.getByText("Борис", { exact: true })).toBeVisible();
   await expect(page.getByText("boris@example.com")).toBeVisible();
+  await expect(page.getByText("Звонок", { exact: true })).toBeVisible();
   await expect(page.getByText(`Слот: ${stamp(start, ownerTimeZone)}`)).toBeVisible();
   await expect(page.getByText(`Слот: ${stamp(start, guestTimeZone)}`)).toHaveCount(0);
   await expect(page.getByText(/^Создано:/u)).toBeVisible();
@@ -135,7 +142,8 @@ test("a Гость's Бронирование appears in the Владелец's 
   const slug = `events-${suffix}`;
   await registerOwner(page, `${slug}@example.com`, slug);
   await expect(page.getByText("Предстоящих событий нет")).toBeVisible();
-  const start = await readFirstStart(page, slug);
+  const eventTypeId = await openHalfHourType(page);
+  const start = await readFirstStart(page, slug, eventTypeId);
   await bookAsGuest(browser, slug, start);
 
   await page.reload();

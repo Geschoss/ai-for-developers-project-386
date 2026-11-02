@@ -60,19 +60,21 @@ const GuestForm = ({
 
 const BookedNotice = ({
   confirmation,
+  durationMinutes,
   guestTimeZone,
 }: {
   confirmation: BookingConfirmation;
+  durationMinutes: number;
   guestTimeZone: string;
 }): ReactElement => (
   <Stack>
     <Title order={2}>Вы записаны</Title>
     <Text>{confirmation.ownerName}</Text>
     <Text>{dayLabel(dayKey(confirmation.startAt, guestTimeZone))}</Text>
-    <Text>Ваше время: {slotRange(confirmation.startAt, guestTimeZone)}</Text>
+    <Text>Ваше время: {slotRange(confirmation.startAt, guestTimeZone, durationMinutes)}</Text>
     <Text>
       Время владельца ({confirmation.ownerTimeZone}):{" "}
-      {slotRange(confirmation.startAt, confirmation.ownerTimeZone)}
+      {slotRange(confirmation.startAt, confirmation.ownerTimeZone, durationMinutes)}
     </Text>
   </Stack>
 );
@@ -87,6 +89,7 @@ const slotIsFree = (group: DayGroup | undefined, slotStart: string | undefined):
 interface BookingSink {
   calendarSlug: string;
   draft: GuestDraft;
+  eventTypeId: string;
   onRefresh: () => Promise<void>;
   setConfirmation: (value: BookingConfirmation) => void;
   setFields: (value: FieldErrors) => void;
@@ -112,7 +115,15 @@ const runPlace = async (start: string, sink: BookingSink): Promise<void> => {
   sink.setFields({});
   sink.setFormError(undefined);
   try {
-    await showResult(await bookSlot(sink.calendarSlug, start, sink.draft), sink);
+    await showResult(
+      await bookSlot({
+        calendarSlug: sink.calendarSlug,
+        eventTypeId: sink.eventTypeId,
+        guest: sink.draft,
+        startAt: start,
+      }),
+      sink,
+    );
   } catch {
     sink.setFormError(requestFailed);
   } finally {
@@ -169,6 +180,7 @@ interface DayView {
   confirmation: BookingConfirmation | undefined;
   day: string | undefined;
   draft: GuestDraft;
+  durationMinutes: number;
   fields: FieldErrors;
   formError: string | undefined;
   group: DayGroup | undefined;
@@ -184,7 +196,13 @@ interface DayView {
 
 const DayBody = (props: DayView): ReactElement => {
   if (props.confirmation !== undefined) {
-    return <BookedNotice confirmation={props.confirmation} guestTimeZone={props.guestTimeZone} />;
+    return (
+      <BookedNotice
+        confirmation={props.confirmation}
+        durationMinutes={props.durationMinutes}
+        guestTimeZone={props.guestTimeZone}
+      />
+    );
   }
   return (
     <>
@@ -194,6 +212,7 @@ const DayBody = (props: DayView): ReactElement => {
       <FormAlert message={props.formError} />
       <SlotList
         day={props.day}
+        durationMinutes={props.durationMinutes}
         group={props.group}
         guestTimeZone={props.guestTimeZone}
         slotStart={props.slotStart}
@@ -217,6 +236,8 @@ const emptyDraft = (): GuestDraft => ({ email: "", name: "" });
 interface PanelProps {
   calendarSlug: string;
   day: string | undefined;
+  durationMinutes: number;
+  eventTypeId: string;
   group: DayGroup | undefined;
   guestTimeZone: string;
   onRefresh: () => Promise<void>;
@@ -234,6 +255,7 @@ const BookingPanel = (props: PanelProps): ReactElement => {
   const sink: BookingSink = {
     calendarSlug: props.calendarSlug,
     draft,
+    eventTypeId: props.eventTypeId,
     onRefresh: props.onRefresh,
     setConfirmation,
     setFields,
@@ -248,6 +270,7 @@ const BookingPanel = (props: PanelProps): ReactElement => {
         confirmation={confirmation}
         day={props.day}
         draft={draft}
+        durationMinutes={props.durationMinutes}
         fields={fields}
         formError={formError}
         group={props.group}

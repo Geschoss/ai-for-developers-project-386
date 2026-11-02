@@ -62,6 +62,7 @@ const BookingCard = ({
     <Text c="dimmed" size="sm">
       {booking.guest.email}
     </Text>
+    <Text size="sm">{booking.eventTypeName}</Text>
     <Text size="sm">{slotLine(booking.startAt, timeZone)}</Text>
     <Text size="sm">{createdLine(booking.createdAt, timeZone)}</Text>
   </Card>

@@ -6,6 +6,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { testAppOptions } from "./app-options.js";
 import { expectMatchesSpec } from "./contract.js";
+import { openEventType } from "./open-event-type.js";
 
 const wideRange = { from: "2020-01-01T00:00:00.000Z", to: "2040-01-01T00:00:00.000Z" };
 const auckland = "Pacific/Auckland";
@@ -40,6 +41,8 @@ const defaultPlanningHorizonDays = 14;
 const limitOfOne = 1;
 // oxlint-disable-next-line eslint/no-magic-numbers -- parallel attempts above a limit of two
 const parallelLimit = 2;
+// oxlint-disable-next-line eslint/no-magic-numbers -- the grid these tests book is 30 minutes
+const halfHourMinutes = 30;
 
 /** 09:00, 09:30, … on 2026-11-03 in Auckland. One civil day, five different Слоты. */
 const sameDaySlots = [
@@ -57,6 +60,7 @@ interface Slot {
 
 interface Owner {
   cookie: string;
+  eventTypeId: string;
   slug: string;
 }
 
@@ -140,7 +144,11 @@ const registerOwner = async (timeZone: string): Promise<Owner> => {
     });
   expectMatchesSpec(response, "post", "/api/auth/register");
   expect(response.status).toBe(201);
-  return { cookie: sessionPair(response.headers["set-cookie"]), slug };
+  const cookie = sessionPair(response.headers["set-cookie"]);
+  const eventTypeId = await openEventType(runningApp(), cookie, {
+    durationMinutes: halfHourMinutes,
+  });
+  return { cookie, eventTypeId, slug };
 };
 
 const writeLimit = async (owner: Owner, dailyBookingLimit: number): Promise<void> => {
@@ -159,15 +167,15 @@ const writeLimit = async (owner: Owner, dailyBookingLimit: number): Promise<void
 const book = async (owner: Owner, startAt: string, email: string): Promise<request.Response> => {
   const response = await request(httpServer(runningApp()))
     .post(`/api/calendars/${owner.slug}/bookings`)
-    .send({ guest: { email, name: "Борис" }, startAt });
+    .send({ eventTypeId: owner.eventTypeId, guest: { email, name: "Борис" }, startAt });
   expectMatchesSpec(response, "post", "/api/calendars/{calendarSlug}/bookings");
   return response;
 };
 
-const listSlots = async (slug: string): Promise<Slot[]> => {
+const listSlots = async (owner: Owner): Promise<Slot[]> => {
   const response = await request(httpServer(runningApp()))
-    .get(`/api/calendars/${slug}/slots`)
-    .query(wideRange);
+    .get(`/api/calendars/${owner.slug}/slots`)
+    .query({ ...wideRange, eventTypeId: owner.eventTypeId });
   expectMatchesSpec(response, "get", "/api/calendars/{calendarSlug}/slots");
   expect(response.status).toBe(200);
   return slotsOf(response);
@@ -278,7 +286,7 @@ describe("parallel Бронирования and a smaller limit", () => {
     await writeLimit(owner, parallelLimit);
     await bookUpToTheLimit(owner);
     await writeLimit(owner, limitOfOne);
-    const slots = await listSlots(owner.slug);
+    const slots = await listSlots(owner);
     const third = await book(owner, earlierSlot, "boris@example.com");
 
     expect(slots).toContainEqual({ startAt: lateAfternoon, status: "booked" });
