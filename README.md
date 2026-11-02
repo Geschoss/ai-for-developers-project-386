@@ -65,7 +65,7 @@ Postgres 18 во Frankfurt, оба на бесплатном плане. Render 
 3. Перезапустите Cursor.
 4. Проверьте подключение: запросите список сервисов Render.
 
-Проверки качества кода: `mise run check` (oxlint, oxfmt, tsc, knip, dependency-cruiser). По отдельности: `mise run lint`, `format`, `fix`, `typecheck`, `knip`, `depcruise`. Тесты: `pnpm test` (нужен запущенный Docker), `pnpm e2e`.
+Проверки качества кода: `mise run check` (oxlint, oxfmt, tsc, knip, dependency-cruiser, сверка контракта, тесты и e2e, по очереди). По отдельности: `mise run lint`, `format`, `fix`, `typecheck`, `knip`, `depcruise`, `spec`, `test`, `e2e`. Тестам нужен запущенный Docker. Браузер Playwright ставится один раз: `pnpm --filter e2e exec playwright install chromium`.
 
 ## Использование
 
