@@ -20,8 +20,15 @@ RUN pnpm --filter frontend --filter backend build \
 FROM node:24.22.1-slim
 ENV NODE_ENV=production PORT=3000 SPA_DIR=/app/public
 WORKDIR /app
+# Hexlet starts the image with only PORT and no database. Postgres stays idle
+# when DATABASE_URL is already set (Render, compose).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends postgresql \
+ && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app ./
 COPY --from=build /repo/frontend/dist ./public
-USER node
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod 755 /entrypoint.sh
 EXPOSE 3000
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["node", "dist/main.js"]

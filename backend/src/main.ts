@@ -20,4 +20,4 @@ const port = process.env["PORT"];
 
 const app = await createApp({ admin, databaseUrl, spaDir });
 app.enableShutdownHooks();
-await app.listen(Number(port ?? 3000));
+await app.listen(Number(port ?? 3000), "0.0.0.0");
