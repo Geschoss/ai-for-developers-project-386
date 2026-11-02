@@ -7,21 +7,13 @@ Guidance for coding agents working in this repository. `CLAUDE.md` only imports 
 "Календарь звонков" — a call-booking calendar service built with AI assistance as a Hexlet learning project
 (https://ru.hexlet.io/programs/ai-for-developers).
 
-The design is settled; the app skeleton exists and features are built on it issue by issue. Read these before working:
-
 - `docs/spec.md` — the source of truth for behavior: roles, domain rules, screens, error codes, stack.
 - `docs/reference/` — screenshots of Hexlet's reference app, a visual reference only; the spec deliberately extends
-  it (registration, roles, Owner settings).
-- `GLOSSARY.md` — canonical domain terms (Владелец, Календарь, Гость, Администратор, Слот, Бронирование,
-  Горизонт планирования, Лимит бронирований, Адрес календаря). Use these terms in code, docs and commits; avoid the
-  listed synonyms.
+  it.
+- `GLOSSARY.md` — canonical domain terms. Use these terms in code, docs and commits; avoid the listed synonyms.
 - `docs/adr/` — decisions that look surprising; don't "fix" them without a new ADR.
 
 ## Backend
-
-Планирование is the only hexagonal context. Read ADR-0006 before moving a booking rule onto the Календарь aggregate
-or reading through it. Идентификация (`identity/`) and Администрирование (`administration/`) stay thin modules:
-no domain, ports, or value objects of their own. Предстоящие Бронирования stay in `owner/`.
 
 ```
 backend/src/
@@ -38,21 +30,10 @@ backend/src/
   platform/          problem, the error filter, database, health
 ```
 
-dependency-cruiser forbids, as errors: the domain importing Nest, Drizzle, Express, infrastructure or HTTP; scenarios
-importing infrastructure or HTTP; infrastructure imported from anywhere but `scheduling.module.ts`; Идентификация
-importing the Планирование domain or scenarios; Администрирование importing the Планирование domain. Domain and
-scenarios may import `shared-kernel/`. Идентификация checks a time zone and an Адрес календаря through that kernel.
-Registration opens the Календарь through `openCalendar` in the session's transaction (ADR-0008). The default
-Горизонт планирования and Лимит бронирований live in Планирование. The port file sits beside `scheduling.module.ts`,
-so Идентификация does not import the domain.
+Read ADR-0006 before moving a booking rule onto the Календарь aggregate. Import rules live in
+`dependency-cruiser.config.js`.
 
 ## Frontend
-
-Screens sit in the same contexts as the backend (ADR-0007). There is no `pages/` folder: a page is the root
-component of its context. The frontend does not own Календарь rules. Горизонт планирования, Лимит бронирований,
-and whether a Слот can be booked arrive from the server. `scheduling/model` presents that: days (the server's
-Горизонт laid on the Гость's calendar, empty days included), the month grid, time labels. It does not accept or
-reject a Слот.
 
 ```
 frontend/src/
@@ -63,9 +44,8 @@ frontend/src/
   shared/           the one API client, error texts, pieces used by every context
 ```
 
-dependency-cruiser forbids, as errors: one context importing another; a screen importing `app/` except
-`app/session.tsx` (tests may render `App`); `scheduling/model` importing the client or `scheduling/api`; anything
-but `shared/api.ts` importing `openapi-fetch`; `shared/` importing a screen. The frame composes the pages.
+Screens sit in the same contexts as the backend (ADR-0007). A page is the root component of its context;
+there is no `pages/` folder.
 
 ## Commands
 
@@ -79,10 +59,13 @@ the repo root:
 - `pnpm spec:build` — regenerate the contract artifacts (see Generated files).
 - `pnpm spec:check` — fail if the committed artifacts differ from a fresh compile.
 - `pnpm typecheck` — `tsc -b` over every package. Same command as `mise run typecheck`.
-- `mise run check` — oxlint (`--deny-warnings`), oxfmt `--check`, `tsc -b`, knip, dependency-cruiser. The pieces
-  are `mise run lint`, `format`, `fix` (oxlint `--fix`, then oxfmt), `typecheck`, `knip`, `depcruise`.
+- `mise run check` — oxlint (`--deny-warnings`), oxfmt `--check`, `tsc -b`, knip, dependency-cruiser, `pnpm
+  spec:check`, `pnpm test`, and `pnpm e2e`. The pieces are `mise run lint`, `format`, `fix` (oxlint `--fix`, then
+  oxfmt), `typecheck`, `knip`, `depcruise`, `spec`, `test`, `e2e`. Tests need Docker. Install Playwright chromium
+  once: `pnpm --filter e2e exec playwright install chromium`.
 - `mise install` also installs the git hooks. pre-commit checks oxlint and oxfmt on staged files only and does not
-  autofix; knip, dependency-cruiser and typecheck stay out of it. commit-msg checks the message (see Commits).
+  autofix; knip, dependency-cruiser, typecheck, spec, test, and e2e stay out of it. commit-msg checks the message
+  (see Commits).
 - `pnpm test` — Vitest in `spec`, `backend`, `frontend`. A single file: `pnpm --filter backend exec vitest run
   test/<file>`. Backend tests start Postgres through Testcontainers, so Docker must be running.
 - `pnpm e2e` — build, then Playwright against the built app and a Testcontainers Postgres.
@@ -140,16 +123,4 @@ The commit-msg hook and the `pr` workflow (`scripts/commit-message.sh`) enforce 
 `.agents/skills/` (symlinked as `.claude/skills`) holds vendored `mattpocock/skills`, pinned in `skills-lock.json`.
 They are third-party: change behavior via project docs, and update them only through the lock file.
 
-### Issue tracker
-
-Work is tracked as GitHub Issues in this repo, with native blocking edges; `ready-for-agent` issues are meant to be
-picked up by agents. Before taking an issue, read the "Taking a ticket" workflow in `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Default vocabulary: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See
-`docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: `GLOSSARY.md` and `docs/adr/` at the root. See `docs/agents/domain.md`.
+Before taking an issue, follow `docs/agents/issue-tracker.md`.
