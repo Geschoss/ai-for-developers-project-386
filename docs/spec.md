@@ -127,5 +127,5 @@ RFC 9457 (`application/problem+json`) с машиночитаемым `code`. Ф
 - **Развёртывание:** один Docker-образ. Nest отдаёт `/api/*` и статику SPA с fallback на `index.html`. При старте
   выполняются миграции и создаётся Администратор. Локально — `docker compose` с Postgres.
 - **CI/CD:** отдельный workflow GitHub Actions: lint, typecheck, проверка совпадения `openapi.yaml` с TypeSpec,
-  тесты, E2E. Render (web service из Dockerfile + managed Postgres) деплоит `main` после зелёного CI, настройка
-  через Render MCP. `hexlet-check.yml` не трогаем.
+  тесты, E2E. Render (web service из Dockerfile + managed Postgres) деплоит только смерженный релизный PR: после
+  зелёного CI на коммите `chore(main): release …` в `main` job `deploy` вызывает Deploy Hook. `hexlet-check.yml` не трогаем.
