@@ -2,7 +2,7 @@ import "@mantine/core/styles.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { App } from "./App";
+import { App } from "./app/App";
 
 const root = document.querySelector("#root");
 // oxlint-disable-next-line unicorn/no-null -- querySelector returns null when the element is missing

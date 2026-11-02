@@ -46,6 +46,27 @@ Registration opens the Календарь through `openCalendar` in the session'
 Горизонт планирования and Лимит бронирований live in Планирование. The port file sits beside `scheduling.module.ts`,
 so Идентификация does not import the domain.
 
+## Frontend
+
+Screens sit in the same contexts as the backend (ADR-0007). There is no `pages/` folder: a page is the root
+component of its context. The frontend does not own Календарь rules. Горизонт планирования, Лимит бронирований,
+and whether a Слот can be booked arrive from the server. `scheduling/model` presents that: days (the server's
+Горизонт laid on the Гость's calendar, empty days included), the month grid, time labels. It does not accept or
+reject a Слот.
+
+```
+frontend/src/
+  app/              frame, routes, session, header
+  scheduling/       Календарь screens; model/ presents Слоты; api/ books through the shared client
+  identity/         login and registration
+  administration/   the list of Владельцы
+  shared/           the one API client, error texts, pieces used by every context
+```
+
+dependency-cruiser forbids, as errors: one context importing another; a screen importing `app/` except
+`app/session.tsx` (tests may render `App`); `scheduling/model` importing the client or `scheduling/api`; anything
+but `shared/api.ts` importing `openapi-fetch`; `shared/` importing a screen. The frame composes the pages.
+
 ## Commands
 
 pnpm workspace (`spec/`, `backend/`, `frontend/`, `e2e/`). Node and pnpm versions are pinned in `mise.toml`; run
@@ -76,7 +97,7 @@ YAML, with stub handlers.
 The API contract is TypeSpec in `spec/*.tsp`; every API change starts there (ADR-0001). `pnpm spec:build` generates:
 
 - `spec/openapi.yaml` — OpenAPI 3; the backend validates requests against it and tests check responses against it.
-- `spec/api.d.ts` — types imported as `spec/api` by the backend and by the frontend SDK (`frontend/src/api.ts`,
+- `spec/api.d.ts` — types imported as `spec/api` by the backend and by the frontend SDK (`frontend/src/shared/api.ts`,
   `openapi-fetch` over these types). The frontend calls the API only through that client.
 
 Both files are read-only: change the `.tsp`, run `pnpm spec:build`, commit the outputs with the TypeSpec change. CI

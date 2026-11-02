@@ -93,6 +93,67 @@ const config = {
       severity: "error",
       to: { path: "^backend/src/scheduling/domain/" },
     },
+    {
+      comment: "Frontend contexts stay apart. The frame in app/ composes their pages (ADR-0007).",
+      from: { path: "^frontend/src/scheduling/" },
+      name: "frontend-scheduling-stays-apart",
+      severity: "error",
+      to: { path: "^frontend/src/(?:identity|administration)/" },
+    },
+    {
+      comment: "Frontend contexts stay apart. The frame in app/ composes their pages (ADR-0007).",
+      from: { path: "^frontend/src/identity/" },
+      name: "frontend-identity-stays-apart",
+      severity: "error",
+      to: { path: "^frontend/src/(?:scheduling|administration)/" },
+    },
+    {
+      comment: "Frontend contexts stay apart. The frame in app/ composes their pages (ADR-0007).",
+      from: { path: "^frontend/src/administration/" },
+      name: "frontend-administration-stays-apart",
+      severity: "error",
+      to: { path: "^frontend/src/(?:scheduling|identity)/" },
+    },
+    {
+      comment:
+        "A screen reads the session from app/session.tsx. Importing the rest of app/ cycles back into the routes (ADR-0007).",
+      from: {
+        path: "^frontend/src/(?:scheduling|identity|administration)/",
+        pathNot: String.raw`\.(?:spec|test)\.(?:ts|tsx)$`,
+      },
+      name: "frontend-screens-read-session-from-app",
+      severity: "error",
+      to: {
+        path: "^frontend/src/app/",
+        pathNot: String.raw`^frontend/src/app/session\.tsx$`,
+      },
+    },
+    {
+      comment:
+        "scheduling/model only presents Слоты. The booking call lives in scheduling/api (ADR-0007).",
+      from: { path: "^frontend/src/scheduling/model/" },
+      name: "scheduling-model-is-presentation",
+      severity: "error",
+      to: { path: String.raw`^frontend/src/(?:shared/api\.ts|scheduling/api/)` },
+    },
+    {
+      comment: "The browser has one API client, frontend/src/shared/api.ts (ADR-0007).",
+      from: {
+        path: "^frontend/",
+        pathNot: String.raw`^frontend/src/shared/api\.ts$`,
+      },
+      name: "frontend-one-api-client",
+      severity: "error",
+      to: { path: "node_modules/openapi-fetch/" },
+    },
+    {
+      comment:
+        "shared/ sits under the screens: the client, error texts, and pieces every context uses (ADR-0007).",
+      from: { path: "^frontend/src/shared/" },
+      name: "frontend-shared-stays-under-screens",
+      severity: "error",
+      to: { path: "^frontend/src/(?:app|scheduling|identity|administration)/" },
+    },
     // No-orphans is intentionally absent: unused files are Knip's job.
   ],
   options: {
@@ -106,7 +167,9 @@ const config = {
       mainFields: ["module", "main"],
     },
     exclude: {
-      path: ["(^|/)dist/", "^backend/drizzle/", "boundary-fixtures"],
+      // Package builds only. A bare `dist/` would also hide dependencies that resolve into
+      // `node_modules/**/dist`, so the single API client would be invisible (ADR-0007).
+      path: ["^(?:frontend|backend|e2e)/dist/", "^backend/drizzle/", "boundary-fixtures"],
     },
     parser: "swc",
     tsPreCompilationDeps: true,
