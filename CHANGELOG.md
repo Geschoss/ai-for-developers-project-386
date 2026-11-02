@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.9.0...v0.10.0) (2026-11-02)
+
+
+### Features
+
+* **identity:** seed a demo Владелец with a public Календарь ([#70](https://github.com/Geschoss/ai-for-developers-project-386/issues/70)) ([ab0ba55](https://github.com/Geschoss/ai-for-developers-project-386/commit/ab0ba554f6d1956c26d3ce67ef79ca1ee5ff3d5f))
+
 ## [0.9.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.8.2...v0.9.0) (2026-11-02)
 
 
