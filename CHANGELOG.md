@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.8.2...v0.9.0) (2026-11-02)
+
+
+### Features
+
+* **scheduling:** let a Тип события set the Слот duration ([#66](https://github.com/Geschoss/ai-for-developers-project-386/issues/66)) ([53ef575](https://github.com/Geschoss/ai-for-developers-project-386/commit/53ef575de862ecd524bb4262f8a42721e0c08ee0))
+
 ## [0.8.2](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.8.1...v0.8.2) (2026-11-02)
 
 
