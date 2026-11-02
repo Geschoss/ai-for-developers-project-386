@@ -64,3 +64,25 @@ jobs:
 
       - name: mise run check
         run: mise run check
+
+  # Only a merged release PR reaches production: its squash commit on main is "chore(main): release …".
+  # The service is linked by a public repo URL, so Render gets no GitHub webhooks; the Deploy Hook starts it.
+  deploy:
+    needs: ci
+    if: >-
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      startsWith(github.event.head_commit.message, 'chore(main): release')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Deploy the release commit to Render
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${RENDER_DEPLOY_HOOK_URL}" ]]; then
+            echo "The RENDER_DEPLOY_HOOK_URL secret is not set" >&2
+            exit 1
+          fi
+          curl --fail --silent --show-error --request POST "${RENDER_DEPLOY_HOOK_URL}&ref=${GITHUB_SHA}"

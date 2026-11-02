@@ -51,10 +51,15 @@ pnpm dev
 
 Учётные данные не коммитьте: в `.env.example` только заглушки. На проде задайте их в переменных окружения сервиса.
 
-Публичный адрес: https://ai-for-developers-project-386-fo1o.onrender.com. Сервисы описаны в `render.yaml`: web service из `Dockerfile` и
-Postgres 18 во Frankfurt, оба на бесплатном плане. Render выкладывает `main` после зелёных проверок GitHub.
-`ADMIN_EMAIL` и `ADMIN_PASSWORD` вводятся в панели Render при создании Blueprint и в репозиторий не попадают.
-Бесплатный Postgres живёт 30 дней.
+Публичный адрес: https://ai-for-developers-project-386-fo1o.onrender.com. На Render работают web service из
+`Dockerfile` и Postgres, оба на бесплатном плане. Бесплатный Postgres живёт 30 дней. `ADMIN_EMAIL` и `ADMIN_PASSWORD`
+задаются в переменных окружения сервиса в панели Render и в репозиторий не попадают.
+
+На прод уходят только релизы. Когда релизный PR (`chore(main): release …`) смержен и `ci` на его коммите в `main`
+зелёный, job `deploy` в `ci.yml` вызывает Deploy Hook сервиса с этим коммитом. Обычные PR в `main` не деплоятся.
+Настройка один раз: в панели сервиса Settings → Auto-Deploy → Off, затем скопировать Deploy Hook из Settings и
+сохранить его секретом репозитория командой `gh secret set RENDER_DEPLOY_HOOK_URL`. URL хука сам запускает деплой,
+не коммитьте его.
 
 ### Render MCP
 
