@@ -5,7 +5,7 @@ import { type NodePgDatabase, drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 
-import { APP_OPTIONS, type AppOptions } from "../app-options.js";
+import { APP_OPTIONS, type AppOptions } from "../../app-options.js";
 // oxlint-disable-next-line import/no-namespace -- Drizzle's relational client takes the schema module namespace
 import * as schema from "./schema.js";
 
@@ -16,7 +16,7 @@ const DATABASE = Symbol("DATABASE");
 
 const POOL = Symbol("POOL");
 
-const migrationsFolder = fileURLToPath(new URL("../../drizzle", import.meta.url));
+const migrationsFolder = fileURLToPath(new URL("../../../drizzle", import.meta.url));
 
 const createPool = (options: AppOptions): Pool =>
   new Pool({ connectionString: options.databaseUrl });

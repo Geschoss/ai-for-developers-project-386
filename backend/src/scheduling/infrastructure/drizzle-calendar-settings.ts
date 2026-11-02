@@ -1,8 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
 
-import { DATABASE, type Database } from "../../database/database.module.js";
-import { users } from "../../database/schema.js";
+import { DATABASE, type Database } from "../../platform/database/database.module.js";
+import { users } from "../../platform/database/schema.js";
 import type { CalendarSettings, CalendarSettingsStore } from "../domain/ports/read-queries.js";
 
 interface SettingsRow {

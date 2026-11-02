@@ -4,10 +4,10 @@ import { Inject, Injectable } from "@nestjs/common";
 import { eq, sql } from "drizzle-orm";
 import type { components } from "spec/api";
 
-import { DATABASE, type Database } from "../database/database.module.js";
-import { sessions, users } from "../database/schema.js";
-import { problem } from "../problem.js";
-import { knownTimeZone } from "./known-time-zone.js";
+import { DATABASE, type Database } from "../platform/database/database.module.js";
+import { sessions, users } from "../platform/database/schema.js";
+import { problem } from "../platform/problem.js";
+import { knownCalendarSlug, knownTimeZone } from "./known-registration.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
 import { sessionExpiresAt } from "./session-cookie.js";
 
@@ -107,6 +107,7 @@ class AccountsService {
   /** Creates an owner and a session. Email is stored in lowercase; the calendar slug is unique. */
   public async register(registration: OwnerRegistration): Promise<StartedSession> {
     knownTimeZone(registration.timeZone);
+    knownCalendarSlug(registration.calendarSlug);
     const email = registration.email.toLowerCase();
     await this.rejectTaken(email, registration.calendarSlug);
     const userId = randomUUID();

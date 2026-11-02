@@ -2,7 +2,7 @@ import { Controller, Get, Inject, Req } from "@nestjs/common";
 import type { Request } from "express";
 import type { components } from "spec/api";
 
-import { sessionIdFrom } from "../accounts/session-cookie.js";
+import { sessionIdFrom } from "../identity/session-cookie.js";
 import { OwnerService } from "./owner.service.js";
 
 type BookingList = components["schemas"]["BookingList"];

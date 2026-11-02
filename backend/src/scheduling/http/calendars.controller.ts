@@ -2,8 +2,8 @@ import { Body, Controller, Get, HttpCode, Inject, Param, Post, Query, Req } from
 import type { Request } from "express";
 import type { components } from "spec/api";
 
-import { AccountsService } from "../../accounts/accounts.service.js";
-import { sessionIdFrom } from "../../accounts/session-cookie.js";
+import { AccountsService } from "../../identity/accounts.service.js";
+import { sessionIdFrom } from "../../identity/session-cookie.js";
 import { CALENDAR_ROUTES, type CalendarRoutes } from "./calendar-routes.js";
 import { translateScheduling } from "./scheduling-problem.js";
 import { viewerFrom } from "./viewer-from.js";

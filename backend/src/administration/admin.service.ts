@@ -2,8 +2,8 @@ import { Inject, Injectable } from "@nestjs/common";
 import { asc, eq } from "drizzle-orm";
 import type { components } from "spec/api";
 
-import { DATABASE, type Database } from "../database/database.module.js";
-import { users } from "../database/schema.js";
+import { DATABASE, type Database } from "../platform/database/database.module.js";
+import { users } from "../platform/database/schema.js";
 
 type Owner = components["schemas"]["Owner"];
 

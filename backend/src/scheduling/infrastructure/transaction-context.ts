@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
-import type { Database } from "../../database/database.module.js";
+import type { Database } from "../../platform/database/database.module.js";
 
 /** The client Drizzle hands to a `transaction` callback: same queries, one locked unit of work. */
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];

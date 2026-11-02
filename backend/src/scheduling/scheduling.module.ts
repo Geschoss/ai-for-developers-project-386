@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 
-import { AccountsModule } from "../accounts/accounts.module.js";
-import { DatabaseModule } from "../database/database.module.js";
+import { AccountsModule } from "../identity/accounts.module.js";
+import { DatabaseModule } from "../platform/database/database.module.js";
 import { BookSlot } from "./application/book-slot.js";
 import { CalendarSettingsService } from "./application/calendar-settings.js";
 import { GetPublicCalendar } from "./application/get-public-calendar.js";
