@@ -77,6 +77,22 @@ const config = {
       severity: "error",
       to: { path: "^backend/src/scheduling/infrastructure/" },
     },
+    {
+      comment:
+        "Идентификация stays a thin module: it does not import the Планирование domain or scenarios.",
+      from: { path: "^backend/src/identity/" },
+      name: "identity-has-no-scheduling-core",
+      severity: "error",
+      to: { path: "^backend/src/scheduling/(?:domain|application)/" },
+    },
+    {
+      comment:
+        "Администрирование lists Владельцы from the row. It does not load the Календарь aggregate.",
+      from: { path: "^backend/src/administration/" },
+      name: "administration-does-not-load-calendar",
+      severity: "error",
+      to: { path: "^backend/src/scheduling/domain/" },
+    },
     // No-orphans is intentionally absent: unused files are Knip's job.
   ],
   options: {

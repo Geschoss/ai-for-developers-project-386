@@ -1,8 +1,8 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, eq, gte, lt } from "drizzle-orm";
 
-import { DATABASE, type Database } from "../../database/database.module.js";
-import { bookings, users } from "../../database/schema.js";
+import { DATABASE, type Database } from "../../platform/database/database.module.js";
+import { bookings, users } from "../../platform/database/schema.js";
 import type { SlotListQuery, SlotListRequest, SlotListView } from "../domain/ports/read-queries.js";
 import { bookableSlots } from "../domain/slot-grid.js";
 

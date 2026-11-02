@@ -3,10 +3,10 @@ import { randomUUID } from "node:crypto";
 import { Inject, Injectable, type OnApplicationBootstrap } from "@nestjs/common";
 import { eq, sql } from "drizzle-orm";
 
-import { hashPassword } from "../accounts/passwords.js";
 import { APP_OPTIONS, type AppOptions } from "../app-options.js";
-import { DATABASE, type Database } from "../database/database.module.js";
-import { users } from "../database/schema.js";
+import { DATABASE, type Database } from "../platform/database/database.module.js";
+import { users } from "../platform/database/schema.js";
+import { hashPassword } from "./passwords.js";
 
 /**
  * Creates the Администратор from {@link AppOptions.admin} once migrations have run. Nothing happens when one already

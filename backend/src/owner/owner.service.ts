@@ -2,11 +2,11 @@ import { Inject, Injectable } from "@nestjs/common";
 import { and, asc, eq, gt } from "drizzle-orm";
 import type { components } from "spec/api";
 
-import { AccountsService } from "../accounts/accounts.service.js";
 import { APP_OPTIONS, type AppOptions } from "../app-options.js";
-import { DATABASE, type Database } from "../database/database.module.js";
-import { bookings, users } from "../database/schema.js";
-import { problem } from "../problem.js";
+import { AccountsService } from "../identity/accounts.service.js";
+import { DATABASE, type Database } from "../platform/database/database.module.js";
+import { bookings, users } from "../platform/database/schema.js";
+import { problem } from "../platform/problem.js";
 
 type Booking = components["schemas"]["Booking"];
 type CurrentOwner = components["schemas"]["CurrentOwner"];

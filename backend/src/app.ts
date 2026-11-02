@@ -10,7 +10,7 @@ import { middleware as openApiMiddleware } from "express-openapi-validator";
 
 import type { AppOptions } from "./app-options.js";
 import { AppModule } from "./app.module.js";
-import { ProblemFilter } from "./problem.filter.js";
+import { ProblemFilter } from "./platform/problem.filter.js";
 
 const apiSpec = createRequire(import.meta.url).resolve("spec/openapi.yaml");
 

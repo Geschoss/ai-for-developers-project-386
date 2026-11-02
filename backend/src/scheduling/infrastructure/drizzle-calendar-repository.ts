@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { and, eq, gte, lt } from "drizzle-orm";
 
-import { bookings, users } from "../../database/schema.js";
+import { bookings, users } from "../../platform/database/schema.js";
 import type { CalendarSlug } from "../../shared-kernel/calendar-slug.js";
 import { Calendar } from "../domain/calendar.js";
 import type { CalendarRepository } from "../domain/ports/calendar-repository.js";

@@ -1,4 +1,4 @@
-import { problem } from "../../problem.js";
+import { problem } from "../../platform/problem.js";
 import { UnknownTimeZoneError } from "../../shared-kernel/unknown-time-zone-error.js";
 import { SchedulingError, type SchedulingCode } from "../domain/scheduling-error.js";
 

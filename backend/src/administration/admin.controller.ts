@@ -2,9 +2,9 @@ import { Controller, Get, Inject, Req } from "@nestjs/common";
 import type { Request } from "express";
 import type { components } from "spec/api";
 
-import { AccountsService } from "../accounts/accounts.service.js";
-import { sessionIdFrom } from "../accounts/session-cookie.js";
-import { problem } from "../problem.js";
+import { AccountsService } from "../identity/accounts.service.js";
+import { sessionIdFrom } from "../identity/session-cookie.js";
+import { problem } from "../platform/problem.js";
 import { AdminService } from "./admin.service.js";
 
 @Controller("admin")

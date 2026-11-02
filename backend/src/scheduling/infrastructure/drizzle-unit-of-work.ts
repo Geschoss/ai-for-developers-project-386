@@ -1,6 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 
-import { DATABASE, type Database } from "../../database/database.module.js";
+import { DATABASE, type Database } from "../../platform/database/database.module.js";
 import type { UnitOfWork } from "../domain/ports/unit-of-work.js";
 import { transactionStorage } from "./transaction-context.js";
 

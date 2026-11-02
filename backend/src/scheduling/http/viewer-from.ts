@@ -1,4 +1,4 @@
-import type { AccountsService } from "../../accounts/accounts.service.js";
+import type { AccountsService } from "../../identity/accounts.service.js";
 import { CalendarSlug } from "../../shared-kernel/calendar-slug.js";
 import type { Viewer } from "../domain/viewer.js";
 

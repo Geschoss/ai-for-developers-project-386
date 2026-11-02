@@ -1,11 +1,11 @@
 import { type DynamicModule, Module } from "@nestjs/common";
 
-import { AccountsModule } from "./accounts/accounts.module.js";
-import { AdminModule } from "./admin/admin.module.js";
+import { AdminModule } from "./administration/admin.module.js";
 import { APP_OPTIONS, type AppOptions, AppOptionsModule } from "./app-options.js";
-import { DatabaseModule } from "./database/database.module.js";
-import { HealthController } from "./health/health.controller.js";
+import { AccountsModule } from "./identity/accounts.module.js";
 import { OwnerModule } from "./owner/owner.module.js";
+import { DatabaseModule } from "./platform/database/database.module.js";
+import { HealthController } from "./platform/health.controller.js";
 import { SchedulingModule } from "./scheduling/scheduling.module.js";
 
 @Module({})

@@ -20,8 +20,8 @@ The design is settled; the app skeleton exists and features are built on it issu
 ## Backend
 
 Планирование is the only hexagonal context. Read ADR-0006 before moving a booking rule onto the Календарь aggregate
-or reading through it. Идентификация (`accounts/`) and Администрирование (`admin/`) stay in place. Предстоящие
-Бронирования stay in `owner/`.
+or reading through it. Идентификация (`identity/`) and Администрирование (`administration/`) stay thin modules:
+no domain, ports, or value objects of their own. Предстоящие Бронирования stay in `owner/`.
 
 ```
 backend/src/
@@ -33,11 +33,15 @@ backend/src/
     infrastructure/  Drizzle adapters and the system clock
     http/            calendar and settings controllers; domain errors become problem+json
     scheduling.module.ts
+  identity/          registration, session, passwords, the Администратор seed
+  administration/    the list of Владельцы; a query, not the Календарь aggregate
+  platform/          problem, the error filter, database, health
 ```
 
 dependency-cruiser forbids, as errors: the domain importing Nest, Drizzle, Express, infrastructure or HTTP; scenarios
-importing infrastructure or HTTP; infrastructure imported from anywhere but `scheduling.module.ts`. Domain and
-scenarios may import `shared-kernel/`.
+importing infrastructure or HTTP; infrastructure imported from anywhere but `scheduling.module.ts`; Идентификация
+importing the Планирование domain or scenarios; Администрирование importing the Планирование domain. Domain and
+scenarios may import `shared-kernel/`. Идентификация checks a time zone and an Адрес календаря through that kernel.
 
 ## Commands
 
