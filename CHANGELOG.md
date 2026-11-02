@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.2](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.8.1...v0.8.2) (2026-11-02)
+
+
+### Bug Fixes
+
+* **docker:** start the image when Hexlet passes only PORT ([#56](https://github.com/Geschoss/ai-for-developers-project-386/issues/56)) ([cbcd95f](https://github.com/Geschoss/ai-for-developers-project-386/commit/cbcd95f1ced974a0e480dd32b040f157b3f743b7))
+
 ## [0.8.1](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.8.0...v0.8.1) (2026-11-02)
 
 
