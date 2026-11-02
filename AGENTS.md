@@ -42,6 +42,9 @@ dependency-cruiser forbids, as errors: the domain importing Nest, Drizzle, Expre
 importing infrastructure or HTTP; infrastructure imported from anywhere but `scheduling.module.ts`; Идентификация
 importing the Планирование domain or scenarios; Администрирование importing the Планирование domain. Domain and
 scenarios may import `shared-kernel/`. Идентификация checks a time zone and an Адрес календаря through that kernel.
+Registration opens the Календарь through `openCalendar` in the session's transaction (ADR-0008). The default
+Горизонт планирования and Лимит бронирований live in Планирование. The port file sits beside `scheduling.module.ts`,
+so Идентификация does not import the domain.
 
 ## Commands
 

@@ -1,30 +1,15 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { DATABASE, type Database } from "../../platform/database/database.module.js";
-import { users } from "../../platform/database/schema.js";
+import { calendars } from "../../platform/database/schema.js";
 import type { CalendarSettings, CalendarSettingsStore } from "../domain/ports/read-queries.js";
 
-interface SettingsRow {
-  dailyBookingLimit: number | null;
-  planningHorizonDays: number | null;
-  timeZone: string | null;
-}
-
-const settingsFrom = (row: SettingsRow | undefined): CalendarSettings => {
-  if (
-    row === undefined ||
-    row.dailyBookingLimit === null ||
-    row.planningHorizonDays === null ||
-    row.timeZone === null
-  ) {
+const settingsFrom = (row: CalendarSettings | undefined): CalendarSettings => {
+  if (row === undefined) {
     throw new Error("Owner is missing calendar settings");
   }
-  return {
-    dailyBookingLimit: row.dailyBookingLimit,
-    planningHorizonDays: row.planningHorizonDays,
-    timeZone: row.timeZone,
-  };
+  return row;
 };
 
 /** Reads and replaces the three settings columns. Does not touch Бронирования. */
@@ -35,29 +20,29 @@ class DrizzleCalendarSettings implements CalendarSettingsStore {
   public async get(ownerId: string): Promise<CalendarSettings> {
     const [row] = await this.db
       .select({
-        dailyBookingLimit: users.dailyBookingLimit,
-        planningHorizonDays: users.planningHorizonDays,
-        timeZone: users.timeZone,
+        dailyBookingLimit: calendars.dailyBookingLimit,
+        planningHorizonDays: calendars.planningHorizonDays,
+        timeZone: calendars.timeZone,
       })
-      .from(users)
-      .where(and(eq(users.id, ownerId), eq(users.role, "owner")))
+      .from(calendars)
+      .where(eq(calendars.ownerId, ownerId))
       .limit(1);
     return settingsFrom(row);
   }
 
   public async save(ownerId: string, settings: CalendarSettings): Promise<CalendarSettings> {
     const [row] = await this.db
-      .update(users)
+      .update(calendars)
       .set({
         dailyBookingLimit: settings.dailyBookingLimit,
         planningHorizonDays: settings.planningHorizonDays,
         timeZone: settings.timeZone,
       })
-      .where(and(eq(users.id, ownerId), eq(users.role, "owner")))
+      .where(eq(calendars.ownerId, ownerId))
       .returning({
-        dailyBookingLimit: users.dailyBookingLimit,
-        planningHorizonDays: users.planningHorizonDays,
-        timeZone: users.timeZone,
+        dailyBookingLimit: calendars.dailyBookingLimit,
+        planningHorizonDays: calendars.planningHorizonDays,
+        timeZone: calendars.timeZone,
       });
     return settingsFrom(row);
   }

@@ -63,6 +63,7 @@ const restore = (input: Restored): Calendar =>
     dailyBookingLimit: DailyBookingLimit.parse(input.limit ?? defaultLimit),
     dayFrom: input.dayFrom,
     dayTo: input.dayTo,
+    id: "calendar-1",
     ownerId,
     ownerName: "Анна",
     planningHorizon: PlanningHorizon.parse(input.horizon ?? defaultHorizon),

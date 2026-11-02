@@ -47,4 +47,29 @@ const knownCalendarSlug = (calendarSlug: string): void => {
   );
 };
 
-export { knownCalendarSlug, knownTimeZone };
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+/** A unique index names which field of the registration is taken. Email wins over the Адрес календаря. */
+const registrationConflict = (error: unknown): "email_taken" | "slug_taken" | undefined => {
+  if (!isRecord(error) || !isRecord(error["cause"]) || error["cause"]["code"] !== "23505") {
+    return undefined;
+  }
+  if (error["cause"]["constraint"] === "users_email_unique") {
+    return "email_taken";
+  }
+  if (error["cause"]["constraint"] === "calendars_slug_unique") {
+    return "slug_taken";
+  }
+  return undefined;
+};
+
+const rethrowConflict = (error: unknown): void => {
+  const code = registrationConflict(error);
+  if (code !== undefined) {
+    throw problem(409, code);
+  }
+  throw error;
+};
+
+export { knownCalendarSlug, knownTimeZone, rethrowConflict };

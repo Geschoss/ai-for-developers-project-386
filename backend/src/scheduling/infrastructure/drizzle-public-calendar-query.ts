@@ -1,20 +1,20 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { DATABASE, type Database } from "../../platform/database/database.module.js";
-import { users } from "../../platform/database/schema.js";
+import { calendars, users } from "../../platform/database/schema.js";
 import type { CalendarSlug } from "../../shared-kernel/calendar-slug.js";
 import type { PublicCalendarQuery, PublicCalendarView } from "../domain/ports/read-queries.js";
 
-interface OwnerRow {
+interface CalendarRow {
   name: string | null;
-  planningHorizonDays: number | null;
-  timeZone: string | null;
+  planningHorizonDays: number;
+  timeZone: string;
 }
 
-const requirePublic = (row: OwnerRow): PublicCalendarView => {
-  if (row.name === null || row.planningHorizonDays === null || row.timeZone === null) {
-    throw new Error("Owner is missing calendar fields");
+const requirePublic = (row: CalendarRow): PublicCalendarView => {
+  if (row.name === null) {
+    throw new Error("Owner is missing a name");
   }
   return {
     ownerName: row.name,
@@ -32,11 +32,12 @@ class DrizzlePublicCalendarQuery implements PublicCalendarQuery {
     const [row] = await this.db
       .select({
         name: users.name,
-        planningHorizonDays: users.planningHorizonDays,
-        timeZone: users.timeZone,
+        planningHorizonDays: calendars.planningHorizonDays,
+        timeZone: calendars.timeZone,
       })
-      .from(users)
-      .where(and(eq(users.calendarSlug, slug.value), eq(users.role, "owner")))
+      .from(calendars)
+      .innerJoin(users, eq(users.id, calendars.ownerId))
+      .where(eq(calendars.slug, slug.value))
       .limit(1);
     if (row === undefined) {
       return undefined;

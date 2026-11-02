@@ -25,6 +25,7 @@ interface CalendarSnapshot {
   dayFrom: Date;
   /** End of that civil day. Exclusive. */
   dayTo: Date;
+  id: string;
   ownerId: string;
   ownerName: string;
   planningHorizon: PlanningHorizon;
@@ -37,6 +38,7 @@ interface LoadedCalendar {
   dailyBookingLimit: number;
   dayFrom: Date;
   dayTo: Date;
+  id: string;
   ownerId: string;
   ownerName: string;
   planningHorizonDays: number;
@@ -57,6 +59,7 @@ const rejectPast = (start: SlotStart, now: Date): void => {
  */
 class Calendar {
   public readonly dailyBookingLimit: DailyBookingLimit;
+  public readonly id: string;
   public readonly ownerId: string;
   public readonly ownerName: string;
   public readonly planningHorizon: PlanningHorizon;
@@ -68,6 +71,7 @@ class Calendar {
   private readonly dayTo: Date;
 
   private constructor(snapshot: CalendarSnapshot) {
+    this.id = snapshot.id;
     this.ownerId = snapshot.ownerId;
     this.ownerName = snapshot.ownerName;
     this.slug = snapshot.slug;
@@ -91,6 +95,7 @@ class Calendar {
       dailyBookingLimit: DailyBookingLimit.parse(loaded.dailyBookingLimit),
       dayFrom: loaded.dayFrom,
       dayTo: loaded.dayTo,
+      id: loaded.id,
       ownerId: loaded.ownerId,
       ownerName: loaded.ownerName,
       planningHorizon: PlanningHorizon.parse(loaded.planningHorizonDays),

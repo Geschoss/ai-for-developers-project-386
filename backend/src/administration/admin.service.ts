@@ -3,19 +3,19 @@ import { asc, eq } from "drizzle-orm";
 import type { components } from "spec/api";
 
 import { DATABASE, type Database } from "../platform/database/database.module.js";
-import { users } from "../platform/database/schema.js";
+import { calendars, users } from "../platform/database/schema.js";
 
 type Owner = components["schemas"]["Owner"];
 
 const ownerFrom = (row: {
-  calendarSlug: string | null;
+  calendarSlug: string;
   createdAt: Date;
   email: string;
   name: string | null;
-  timeZone: string | null;
+  timeZone: string;
 }): Owner => {
-  if (row.name === null || row.calendarSlug === null || row.timeZone === null) {
-    throw new Error("Owner is missing calendar fields");
+  if (row.name === null) {
+    throw new Error("Owner is missing a name");
   }
   return {
     calendarSlug: row.calendarSlug,
@@ -35,13 +35,14 @@ class AdminService {
   public async listOwners(): Promise<Owner[]> {
     const rows = await this.db
       .select({
-        calendarSlug: users.calendarSlug,
+        calendarSlug: calendars.slug,
         createdAt: users.createdAt,
         email: users.email,
         name: users.name,
-        timeZone: users.timeZone,
+        timeZone: calendars.timeZone,
       })
       .from(users)
+      .innerJoin(calendars, eq(calendars.ownerId, users.id))
       .where(eq(users.role, "owner"))
       .orderBy(asc(users.createdAt));
     return rows.map((row) => ownerFrom(row));
