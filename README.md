@@ -51,7 +51,7 @@ pnpm dev
 
 Учётные данные не коммитьте: в `.env.example` только заглушки. На проде задайте их в переменных окружения сервиса.
 
-Публичный адрес: https://calendar-386.onrender.com. Сервисы описаны в `render.yaml`: web service из `Dockerfile` и
+Публичный адрес: https://ai-for-developers-project-386-fo1o.onrender.com. Сервисы описаны в `render.yaml`: web service из `Dockerfile` и
 Postgres 18 во Frankfurt, оба на бесплатном плане. Render выкладывает `main` после зелёных проверок GitHub.
 `ADMIN_EMAIL` и `ADMIN_PASSWORD` вводятся в панели Render при создании Blueprint и в репозиторий не попадают.
 Бесплатный Postgres живёт 30 дней.
