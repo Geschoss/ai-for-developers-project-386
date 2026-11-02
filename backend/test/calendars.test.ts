@@ -160,8 +160,8 @@ const insertBooking = async (slug: string, startAt: string): Promise<void> => {
   await client.connect();
   try {
     const inserted = await client.query(
-      `insert into bookings (id, owner_id, guest_name, guest_email, start_at)
-       select $1, id, $2, $3, $4 from users where calendar_slug = $5`,
+      `insert into bookings (id, calendar_id, guest_name, guest_email, start_at)
+       select $1, id, $2, $3, $4 from calendars where slug = $5`,
       [randomUUID(), guestName, guestEmail, startAt, slug],
     );
     expect(inserted.rowCount).toBe(1);

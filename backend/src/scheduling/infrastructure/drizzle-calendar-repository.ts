@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { and, eq, gte, lt } from "drizzle-orm";
 
-import { bookings, users } from "../../platform/database/schema.js";
+import { bookings, calendars, users } from "../../platform/database/schema.js";
 import type { CalendarSlug } from "../../shared-kernel/calendar-slug.js";
 import { Calendar } from "../domain/calendar.js";
 import type { CalendarRepository } from "../domain/ports/calendar-repository.js";
@@ -9,55 +9,37 @@ import { SchedulingError } from "../domain/scheduling-error.js";
 import { civilDayBounds } from "../domain/slot-grid.js";
 import { currentTransaction } from "./transaction-context.js";
 
-interface OwnerRow {
-  dailyBookingLimit: number | null;
-  id: string;
-  name: string | null;
-  planningHorizonDays: number | null;
-  timeZone: string | null;
+interface CalendarRow {
+  calendarId: string;
+  dailyBookingLimit: number;
+  ownerId: string;
+  ownerName: string | null;
+  planningHorizonDays: number;
+  timeZone: string;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
-/** Unique index `bookings_owner_start_unique` is the guarantee; this only names the error (ADR-0003). */
+/** Unique index `bookings_calendar_start_unique` is the guarantee; this only names the error (ADR-0003). */
 const slotAlreadyTaken = (error: unknown): boolean => {
   if (!isRecord(error) || !isRecord(error["cause"])) {
     return false;
   }
   return (
     error["cause"]["code"] === "23505" &&
-    error["cause"]["constraint"] === "bookings_owner_start_unique"
+    error["cause"]["constraint"] === "bookings_calendar_start_unique"
   );
 };
 
-const requireFields = (
-  row: OwnerRow,
-): {
-  dailyBookingLimit: number;
-  id: string;
-  name: string;
-  planningHorizonDays: number;
-  timeZone: string;
-} => {
-  if (
-    row.name === null ||
-    row.planningHorizonDays === null ||
-    row.timeZone === null ||
-    row.dailyBookingLimit === null
-  ) {
-    throw new Error("Owner is missing calendar fields");
+const requireName = (row: CalendarRow): CalendarRow & { ownerName: string } => {
+  if (row.ownerName === null) {
+    throw new Error("Owner is missing a name");
   }
-  return {
-    dailyBookingLimit: row.dailyBookingLimit,
-    id: row.id,
-    name: row.name,
-    planningHorizonDays: row.planningHorizonDays,
-    timeZone: row.timeZone,
-  };
+  return { ...row, ownerName: row.ownerName };
 };
 
-/** Loads one civil day under `SELECT … FOR UPDATE` and inserts only the Бронирования `book` added. */
+/** Loads one civil day under `SELECT … FOR UPDATE` of the Календарь and inserts only the Бронирования `book` added. */
 @Injectable()
 class DrizzleCalendarRepository implements CalendarRepository {
   private readonly openTransaction = currentTransaction;
@@ -66,21 +48,23 @@ class DrizzleCalendarRepository implements CalendarRepository {
     const transaction = this.openTransaction();
     const [row] = await transaction
       .select({
-        dailyBookingLimit: users.dailyBookingLimit,
-        id: users.id,
-        name: users.name,
-        planningHorizonDays: users.planningHorizonDays,
-        timeZone: users.timeZone,
+        calendarId: calendars.id,
+        dailyBookingLimit: calendars.dailyBookingLimit,
+        ownerId: calendars.ownerId,
+        ownerName: users.name,
+        planningHorizonDays: calendars.planningHorizonDays,
+        timeZone: calendars.timeZone,
       })
-      .from(users)
-      .where(and(eq(users.calendarSlug, slug.value), eq(users.role, "owner")))
+      .from(calendars)
+      .innerJoin(users, eq(users.id, calendars.ownerId))
+      .where(eq(calendars.slug, slug.value))
       .limit(1)
-      .for("update");
+      .for("update", { of: calendars });
     if (row === undefined) {
       return undefined;
     }
-    const owner = requireFields(row);
-    const day = civilDayBounds(startAt, owner.timeZone);
+    const calendar = requireName(row);
+    const day = civilDayBounds(startAt, calendar.timeZone);
     const stored = await transaction
       .select({
         guestEmail: bookings.guestEmail,
@@ -91,21 +75,22 @@ class DrizzleCalendarRepository implements CalendarRepository {
       .from(bookings)
       .where(
         and(
-          eq(bookings.ownerId, owner.id),
+          eq(bookings.calendarId, calendar.calendarId),
           gte(bookings.startAt, day.from),
           lt(bookings.startAt, day.to),
         ),
       );
     return Calendar.load({
       bookings: stored,
-      dailyBookingLimit: owner.dailyBookingLimit,
+      dailyBookingLimit: calendar.dailyBookingLimit,
       dayFrom: day.from,
       dayTo: day.to,
-      ownerId: owner.id,
-      ownerName: owner.name,
-      planningHorizonDays: owner.planningHorizonDays,
+      id: calendar.calendarId,
+      ownerId: calendar.ownerId,
+      ownerName: calendar.ownerName,
+      planningHorizonDays: calendar.planningHorizonDays,
       slug: slug.value,
-      timeZone: owner.timeZone,
+      timeZone: calendar.timeZone,
     });
   }
 
@@ -118,10 +103,10 @@ class DrizzleCalendarRepository implements CalendarRepository {
     try {
       await transaction.insert(bookings).values(
         added.map((booking) => ({
+          calendarId: calendar.id,
           guestEmail: booking.guestEmail,
           guestName: booking.guestName,
           id: booking.id,
-          ownerId: calendar.ownerId,
           startAt: booking.startAt,
         })),
       );

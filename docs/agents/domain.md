@@ -23,7 +23,8 @@ This repo is single-context:
     ├── 0003-booking-invariants-in-db.md
     ├── 0004-oxlint-oxfmt.md
     ├── 0005-session-cookie-secure.md
-    └── 0006-scheduling-hexagon.md
+    ├── 0006-scheduling-hexagon.md
+    └── 0008-calendar-table.md
 ```
 
 ## Use the glossary's vocabulary

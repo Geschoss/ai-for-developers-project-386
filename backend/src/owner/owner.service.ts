@@ -5,7 +5,7 @@ import type { components } from "spec/api";
 import { APP_OPTIONS, type AppOptions } from "../app-options.js";
 import { AccountsService } from "../identity/accounts.service.js";
 import { DATABASE, type Database } from "../platform/database/database.module.js";
-import { bookings, users } from "../platform/database/schema.js";
+import { bookings, calendars, users } from "../platform/database/schema.js";
 import { problem } from "../platform/problem.js";
 
 type Booking = components["schemas"]["Booking"];
@@ -52,7 +52,8 @@ class OwnerService {
         startAt: bookings.startAt,
       })
       .from(bookings)
-      .where(and(eq(bookings.ownerId, ownerId), gt(bookings.startAt, current)))
+      .innerJoin(calendars, eq(bookings.calendarId, calendars.id))
+      .where(and(eq(calendars.ownerId, ownerId), gt(bookings.startAt, current)))
       .orderBy(asc(bookings.startAt));
     return rows.map((row) => bookingFrom(row));
   }

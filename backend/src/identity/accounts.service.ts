@@ -1,3 +1,4 @@
+/* oxlint-disable import/max-dependencies -- registration calls the Планирование port */
 import { randomUUID } from "node:crypto";
 
 import { Inject, Injectable } from "@nestjs/common";
@@ -5,9 +6,10 @@ import { eq, sql } from "drizzle-orm";
 import type { components } from "spec/api";
 
 import { DATABASE, type Database } from "../platform/database/database.module.js";
-import { sessions, users } from "../platform/database/schema.js";
+import { calendars, sessions, users } from "../platform/database/schema.js";
 import { problem } from "../platform/problem.js";
-import { knownCalendarSlug, knownTimeZone } from "./known-registration.js";
+import type { OpenCalendar } from "../scheduling/open-calendar.js";
+import { knownCalendarSlug, knownTimeZone, rethrowConflict } from "./known-registration.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
 import { sessionExpiresAt } from "./session-cookie.js";
 
@@ -15,35 +17,6 @@ type Credentials = components["schemas"]["Credentials"];
 type CurrentOwner = components["schemas"]["CurrentOwner"];
 type CurrentUser = components["schemas"]["CurrentUser"];
 type OwnerRegistration = components["schemas"]["OwnerRegistration"];
-
-// oxlint-disable-next-line eslint/no-magic-numbers -- spec: a new owner gets a planning horizon of 14
-const defaultPlanningHorizonDays = 14;
-// oxlint-disable-next-line eslint/no-magic-numbers -- spec: a new owner gets a daily booking limit of 2
-const defaultDailyBookingLimit = 2;
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const conflictCode = (error: unknown): "email_taken" | "slug_taken" | undefined => {
-  if (!isRecord(error) || !isRecord(error["cause"]) || error["cause"]["code"] !== "23505") {
-    return undefined;
-  }
-  if (error["cause"]["constraint"] === "users_email_unique") {
-    return "email_taken";
-  }
-  if (error["cause"]["constraint"] === "users_calendar_slug_unique") {
-    return "slug_taken";
-  }
-  return undefined;
-};
-
-const rethrowConflict = (error: unknown): void => {
-  const code = conflictCode(error);
-  if (code !== undefined) {
-    throw problem(409, code);
-  }
-  throw error;
-};
 
 const hashToCheck = async (
   user: { passwordHash: string } | undefined,
@@ -101,8 +74,14 @@ const currentUserFrom = (user: UserRow): CurrentUser => {
 class AccountsService {
   /** Verified when the email is unknown, so login does not answer faster for a missing account. */
   private readonly dummyHash: Promise<string> = hashPassword(randomUUID());
+  private calendarOpener?: OpenCalendar;
 
   public constructor(@Inject(DATABASE) private readonly db: Database) {}
+
+  /** Планирование registers the port. Registration calls it inside the session transaction (ADR-0008). */
+  public bindOpenCalendar(opener: OpenCalendar): void {
+    this.calendarOpener = opener;
+  }
 
   /** Creates an owner and a session. Email is stored in lowercase; the calendar slug is unique. */
   public async register(registration: OwnerRegistration): Promise<StartedSession> {
@@ -134,15 +113,16 @@ class AccountsService {
     const email = credentials.email.toLowerCase();
     const [user] = await this.db
       .select({
-        calendarSlug: users.calendarSlug,
+        calendarSlug: calendars.slug,
         email: users.email,
         id: users.id,
         name: users.name,
         passwordHash: users.passwordHash,
         role: users.role,
-        timeZone: users.timeZone,
+        timeZone: calendars.timeZone,
       })
       .from(users)
+      .leftJoin(calendars, eq(calendars.ownerId, users.id))
       .where(sql`lower(${users.email}) = ${email}`)
       .limit(1);
     const passwordHash = await hashToCheck(user, this.dummyHash);
@@ -215,16 +195,18 @@ class AccountsService {
     userId: string;
   }): Promise<void> {
     const passwordHash = await hashPassword(input.registration.password);
+    const opener = this.opener();
     await this.db.transaction(async (tx) => {
       await tx.insert(users).values({
-        calendarSlug: input.registration.calendarSlug,
-        dailyBookingLimit: defaultDailyBookingLimit,
         email: input.email,
         id: input.userId,
         name: input.registration.name,
         passwordHash,
-        planningHorizonDays: defaultPlanningHorizonDays,
         role: "owner",
+      });
+      await opener.openCalendar(tx, {
+        ownerId: input.userId,
+        slug: input.registration.calendarSlug,
         timeZone: input.registration.timeZone,
       });
       await tx.insert(sessions).values({
@@ -233,6 +215,13 @@ class AccountsService {
         userId: input.userId,
       });
     });
+  }
+
+  private opener(): OpenCalendar {
+    if (this.calendarOpener === undefined) {
+      throw new Error("Планирование has not registered openCalendar");
+    }
+    return this.calendarOpener;
   }
 
   /**
@@ -245,16 +234,17 @@ class AccountsService {
     }
     const [row] = await this.db
       .select({
-        calendarSlug: users.calendarSlug,
+        calendarSlug: calendars.slug,
         email: users.email,
         expiresAt: sessions.expiresAt,
         id: users.id,
         name: users.name,
         role: users.role,
-        timeZone: users.timeZone,
+        timeZone: calendars.timeZone,
       })
       .from(sessions)
       .innerJoin(users, eq(sessions.userId, users.id))
+      .leftJoin(calendars, eq(calendars.ownerId, users.id))
       .where(eq(sessions.id, sessionId))
       .limit(1);
     if (row === undefined || row.expiresAt.getTime() <= Date.now()) {
@@ -277,9 +267,9 @@ class AccountsService {
       throw problem(409, "email_taken");
     }
     const [bySlug] = await this.db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.calendarSlug, calendarSlug))
+      .select({ id: calendars.ownerId })
+      .from(calendars)
+      .where(eq(calendars.slug, calendarSlug))
       .limit(1);
     if (bySlug !== undefined) {
       throw problem(409, "slug_taken");

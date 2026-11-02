@@ -29,6 +29,13 @@
       "when": 1793340478648,
       "tag": "0003_bookings",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793592476066,
+      "tag": "0004_calendar_table",
+      "breakpoints": true
     }
   ]
 }

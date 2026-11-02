@@ -5,6 +5,8 @@ import { withinPlanningHorizon } from "./slot-grid.js";
 const minimumHorizonDays = 1;
 // oxlint-disable-next-line eslint/no-magic-numbers -- spec: the longest Горизонт планирования is 60 days
 const maximumHorizonDays = 60;
+// oxlint-disable-next-line eslint/no-magic-numbers -- spec: a new Календарь starts with a horizon of 14 days
+const openingHorizonDays = 14;
 
 /** How many civil days, including today, a Гость may book. */
 class PlanningHorizon {
@@ -15,6 +17,11 @@ class PlanningHorizon {
       throw new Error(`Planning horizon ${String(days)} is outside 1..60`);
     }
     return new PlanningHorizon(days);
+  }
+
+  /** The Горизонт планирования registration gives a new Календарь. */
+  public static opening(): PlanningHorizon {
+    return PlanningHorizon.parse(openingHorizonDays);
   }
 
   /** Today counts. The day after the horizon does not. */
