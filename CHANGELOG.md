@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.8.0...v0.8.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* **docker:** copy the shared tsconfig into the image ([#51](https://github.com/Geschoss/ai-for-developers-project-386/issues/51)) ([f891b7c](https://github.com/Geschoss/ai-for-developers-project-386/commit/f891b7cee9cfc0bb2372d3795faf50af65b5ad48))
+
 ## [0.8.0](https://github.com/Geschoss/ai-for-developers-project-386/compare/v0.7.0...v0.8.0) (2026-11-01)
 
 
