@@ -12,6 +12,8 @@ RUN pnpm install --frozen-lockfile --filter backend... --filter frontend...
 COPY spec spec
 COPY backend backend
 COPY frontend frontend
+# Vite and Nest follow `extends` to this file. It sits outside both packages.
+COPY tsconfig.base.json ./
 RUN pnpm --filter frontend --filter backend build \
  && pnpm --filter backend deploy --legacy --prod /app
 
