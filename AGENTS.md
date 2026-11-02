@@ -60,7 +60,7 @@ the repo root:
 - `pnpm spec:check` — fail if the committed artifacts differ from a fresh compile.
 - `pnpm typecheck` — `tsc -b` over every package. Same command as `mise run typecheck`.
 - `mise run check` — oxlint (`--deny-warnings`), oxfmt `--check`, `tsc -b`, knip, dependency-cruiser, `pnpm
-  spec:check`, `pnpm test`, and `pnpm e2e`. The pieces are `mise run lint`, `format`, `fix` (oxlint `--fix`, then
+  spec:check`, `pnpm test`, and `pnpm e2e`, one after another. The pieces are `mise run lint`, `format`, `fix` (oxlint `--fix`, then
   oxfmt), `typecheck`, `knip`, `depcruise`, `spec`, `test`, `e2e`. Tests need Docker. Install Playwright chromium
   once: `pnpm --filter e2e exec playwright install chromium`.
 - `mise install` also installs the git hooks. pre-commit checks oxlint and oxfmt on staged files only and does not
