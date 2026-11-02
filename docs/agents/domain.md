@@ -24,6 +24,7 @@ This repo is single-context:
     ├── 0004-oxlint-oxfmt.md
     ├── 0005-session-cookie-secure.md
     ├── 0006-scheduling-hexagon.md
+    ├── 0007-frontend-contexts.md
     └── 0008-calendar-table.md
 ```
 

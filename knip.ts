@@ -11,8 +11,8 @@ const config: KnipConfig = {
   ],
   workspaces: {
     frontend: {
-      // The typed client has no caller until the booking screens. It is the module they will import.
-      entry: ["src/api.ts"],
+      // Boundary fixtures exist to provoke dependency-cruiser. Nothing in the app imports them.
+      ignore: ["src/**/__boundary-fixtures__/**"],
     },
   },
 };
