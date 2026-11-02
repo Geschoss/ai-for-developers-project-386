@@ -256,15 +256,37 @@ const expectOneDemo = async (application: INestApplication): Promise<void> => {
   });
 };
 
+interface RacedApps {
+  first: INestApplication;
+  postgres: StartedPostgreSqlContainer;
+  second: INestApplication;
+}
+
+const stopRaced = async (raced: RacedApps | undefined): Promise<void> => {
+  if (raced === undefined) {
+    return;
+  }
+  await raced.first.close();
+  await raced.second.close();
+  await raced.postgres.stop();
+};
+
 describe("two startups at once", () => {
+  // oxlint-disable-next-line unicorn/no-useless-undefined -- initializer so TypeScript treats the binding as assigned before beforeAll
+  let raced: RacedApps | undefined = undefined;
+
+  beforeAll(async () => {
+    raced = await startPair();
+  });
+
+  afterAll(async () => {
+    await stopRaced(raced);
+  });
+
   it("keeps a single demo Владелец", async () => {
-    const raced = await startPair();
-    try {
-      await expectOneDemo(raced.first);
-    } finally {
-      await raced.first.close();
-      await raced.second.close();
-      await raced.postgres.stop();
+    if (raced === undefined) {
+      throw new Error("The apps were not started");
     }
+    await expectOneDemo(raced.first);
   });
 });
