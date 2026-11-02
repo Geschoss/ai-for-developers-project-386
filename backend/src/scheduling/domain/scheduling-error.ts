@@ -2,6 +2,7 @@
 const schedulingCodes = [
   "calendar_not_found",
   "daily_limit_reached",
+  "event_type_not_found",
   "not_a_slot_start",
   "outside_planning_horizon",
   "own_calendar",

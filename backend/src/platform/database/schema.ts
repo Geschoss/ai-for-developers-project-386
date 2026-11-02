@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { check, integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 /**
  * Пользователи. Роль `owner` — Владелец; роль `admin` — Администратор.
@@ -55,8 +55,40 @@ const calendars = pgTable(
 );
 
 /**
- * Бронирование. Уникальный индекс не даёт двум Гостям занять один Слот (ADR-0003).
- * Список Слотов читает только `start_at`: имя и email Гостя наружу не отдаются.
+ * Тип события Календаря. Длительность задаёт длину Слота.
+ * Изменить и удалить тип нельзя: строка только дописывается.
+ */
+const eventTypes = pgTable(
+  "event_types",
+  {
+    calendarId: uuid("calendar_id")
+      .notNull()
+      .references(() => calendars.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { mode: "date", withTimezone: true }).notNull().defaultNow(),
+    description: text("description").notNull(),
+    durationMinutes: integer("duration_minutes").notNull(),
+    id: uuid("id").primaryKey(),
+    name: text("name").notNull(),
+  },
+  (table) => [
+    // oxlint-disable-next-line eslint/no-magic-numbers -- spec: duration is 30..540, step 30
+    check(
+      "event_types_duration_step",
+      sql`${table.durationMinutes} >= 30 and ${table.durationMinutes} <= 540 and ${table.durationMinutes} % 30 = 0`,
+    ),
+    // oxlint-disable-next-line eslint/no-magic-numbers -- spec: a name is 1..100 characters
+    check("event_types_name_length", sql`char_length(${table.name}) between 1 and 100`),
+    // oxlint-disable-next-line eslint/no-magic-numbers -- spec: a description is 1..1000 characters
+    check(
+      "event_types_description_length",
+      sql`char_length(${table.description}) between 1 and 1000`,
+    ),
+  ],
+);
+
+/**
+ * Бронирование. Пересечение полуинтервалов `[start_at, end_at)` одного Календаря запрещает
+ * exclusion-ограничение (ADR-0009). Список Слотов читает только границы: имя и email Гостя наружу не отдаются.
  */
 const bookings = pgTable(
   "bookings",
@@ -65,12 +97,16 @@ const bookings = pgTable(
       .notNull()
       .references(() => calendars.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at", { mode: "date", withTimezone: true }).notNull().defaultNow(),
+    endAt: timestamp("end_at", { mode: "date", withTimezone: true }).notNull(),
+    eventTypeId: uuid("event_type_id")
+      .notNull()
+      .references(() => eventTypes.id, { onDelete: "cascade" }),
     guestEmail: text("guest_email").notNull(),
     guestName: text("guest_name").notNull(),
     id: uuid("id").primaryKey(),
     startAt: timestamp("start_at", { mode: "date", withTimezone: true }).notNull(),
   },
-  (table) => [uniqueIndex("bookings_calendar_start_unique").on(table.calendarId, table.startAt)],
+  (table) => [check("bookings_end_after_start", sql`${table.endAt} > ${table.startAt}`)],
 );
 
-export { bookings, calendars, sessions, users };
+export { bookings, calendars, eventTypes, sessions, users };

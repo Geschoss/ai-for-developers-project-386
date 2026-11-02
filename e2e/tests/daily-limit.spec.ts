@@ -1,5 +1,7 @@
 import { type Browser, type Page, expect, test } from "@playwright/test";
 
+import { openHalfHourType } from "./event-type.js";
+
 // oxlint-disable-next-line eslint/no-magic-numbers -- a Слот is 30 minutes
 const slotLengthMinutes = 30;
 // oxlint-disable-next-line eslint/no-magic-numbers -- seconds in a minute
@@ -120,9 +122,13 @@ const threeFreeOnOneDay = (slots: ListedSlot[]): DaySlots => {
   return asTrio(full);
 };
 
-const readTrio = async (page: Page, slug: string): Promise<DaySlots> => {
+const readTrio = async (page: Page, slug: string, eventTypeId: string): Promise<DaySlots> => {
   const listed = await page.request.get(`/api/calendars/${slug}/slots`, {
-    params: { from: "2020-01-01T00:00:00.000Z", to: "2040-01-01T00:00:00.000Z" },
+    params: {
+      eventTypeId,
+      from: "2020-01-01T00:00:00.000Z",
+      to: "2040-01-01T00:00:00.000Z",
+    },
   });
   expect(listed.ok()).toBeTruthy();
   const body: unknown = await listed.json();
@@ -173,7 +179,7 @@ test("a guest sees the limit once one email has used it for the day", async ({
 }) => {
   const slug = `limit-${String(Date.now())}`;
   await registerOwner(page, `${slug}@example.com`, slug);
-  const slots = await readTrio(page, slug);
+  const slots = await readTrio(page, slug, await openHalfHourType(page));
   const guest = await browser.newContext({ timezoneId: guestTimeZone });
   const guestPage = await guest.newPage();
   try {

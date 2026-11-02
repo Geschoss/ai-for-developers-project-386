@@ -4,11 +4,24 @@ using Http;
 
 namespace CallCalendar;
 
+/** Тип события, который Гость выбирает перед Слотами. */
+model EventType {
+  id: Uuid;
+  name: EventTypeName;
+  description: EventTypeDescription;
+
+  /** Длительность Слота этого типа, в минутах. */
+  durationMinutes: EventDuration;
+}
+
 /** Публичные данные календаря. Данных Гостей здесь нет. */
 model PublicCalendar {
   ownerName: PersonName;
   timeZone: TimeZone;
   planningHorizonDays: PlanningHorizon;
+
+  /** В порядке создания. Пустой список — бронь не принимается. */
+  eventTypes: EventType[];
 }
 
 enum SlotStatus {
@@ -16,7 +29,7 @@ enum SlotStatus {
   booked,
 }
 
-/** 30-минутный Слот. Для Гостя он только «свободно» или «занято»: кто его занял, не раскрывается. */
+/** Слот выбранного Типа события. Для Гостя он только «свободно» или «занято»: кто его занял, не раскрывается. */
 model Slot {
   /** Начало Слота, UTC. */
   startAt: utcDateTime;
@@ -36,8 +49,11 @@ model Guest {
 }
 
 model BookingRequest {
-  /** Начало Слота, UTC. Должно совпадать с началом Слота сетки. */
+  /** Начало Слота, UTC. Должно совпадать с началом Слота выбранного типа. */
   startAt: utcDateTime;
+
+  /** Тип события этого Календаря. Чужой id — `event_type_not_found`. */
+  eventTypeId: Uuid;
 
   guest: Guest;
 }
@@ -82,7 +98,8 @@ op listSlots(
   @path calendarSlug: CalendarSlug,
   @query from: utcDateTime,
   @query to: utcDateTime,
-): SlotList | ValidationProblem | CalendarNotFound;
+  @query eventTypeId: Uuid,
+): SlotList | ValidationProblem | CalendarNotFound | EventTypeNotFound;
 
 /**
  * Гость бронирует Слот. Сессия не нужна; если она есть, сервер по ней отклоняет бронирование собственного
@@ -99,5 +116,6 @@ op createBooking(@path calendarSlug: CalendarSlug, @body booking: BookingRequest
     }
   | ValidationProblem
   | CalendarNotFound
+  | EventTypeNotFound
   | BookingConflict
   | BookingRejected;

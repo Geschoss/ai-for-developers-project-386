@@ -1,3 +1,4 @@
+/* oxlint-disable eslint/max-lines -- the public Календарь scenarios share one fetch double */
 import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,11 +11,35 @@ vi.mock("../shared/time-zones", () => ({
   timeZoneNames: ["Europe/Moscow", "America/New_York", "UTC"],
 }));
 
-const calendar = {
+const halfHourType = {
+  description: "Короткий звонок",
+  // oxlint-disable-next-line eslint/no-magic-numbers -- a 30-minute Тип события
+  durationMinutes: 30 as const,
+  id: "11111111-1111-4111-8111-111111111111",
+  name: "Звонок",
+};
+
+const hourType = {
+  description: "Часовой созвон",
+  // oxlint-disable-next-line eslint/no-magic-numbers -- a 60-minute Тип события
+  durationMinutes: 60 as const,
+  id: "22222222-2222-4222-8222-222222222222",
+  name: "Час",
+};
+
+let eventTypes: readonly (typeof halfHourType | typeof hourType)[] = [halfHourType];
+
+const publicCalendar = (): {
+  eventTypes: typeof eventTypes;
+  ownerName: string;
+  planningHorizonDays: number;
+  timeZone: string;
+} => ({
+  eventTypes,
   ownerName: "Анна",
   planningHorizonDays: 14,
   timeZone: "Europe/Moscow",
-};
+});
 
 const slots = {
   slots: [
@@ -119,7 +144,7 @@ const calendarResponse = (url: string): Response => {
     return problem(404, { code: "calendar_not_found", status: 404, title: "Not Found" });
   }
   if (url.includes("/api/calendars/anna")) {
-    return json(200, calendar);
+    return json(200, publicCalendar());
   }
   return problem(404, { code: "not_found", status: 404, title: "Not Found" });
 };
@@ -145,6 +170,7 @@ const renderAt = (path: string): void => {
 
 const resetGuest = (): void => {
   guest.timeZone = "Europe/Moscow";
+  eventTypes = [halfHourType];
   listed = slots;
   booking = "created";
   viewer = "guest";
@@ -170,6 +196,7 @@ describe("public calendar", () => {
     expect(screen.getByText("09:30–10:00")).toBeInTheDocument();
     expect(screen.getByText("Свободно")).toBeInTheDocument();
     expect(screen.getByText("Занято")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "Звонок" })).toBeChecked();
   });
 
   it("shows the zone banner and shifts Слот time when the zones differ", async () => {
@@ -185,6 +212,32 @@ describe("public calendar", () => {
 
     expect(screen.getByText("01:00–01:30")).toBeInTheDocument();
     expect(screen.getByText("01:30–02:00")).toBeInTheDocument();
+    expect(screen.queryByText("09:00–09:30")).not.toBeInTheDocument();
+  });
+});
+
+describe("Тип события on a public Календарь", () => {
+  beforeEach(resetGuest);
+
+  it("shows no booking board when the Календарь has no Типы событий", async () => {
+    eventTypes = [];
+    renderAt("/u/anna");
+
+    expect(await screen.findByText("В этом Календаре нет Типов событий")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /ноября/u })).not.toBeInTheDocument();
+  });
+
+  it("shows the range of the Тип события the Гость picks", async () => {
+    eventTypes = [halfHourType, hourType];
+    renderAt("/u/anna");
+    fireEvent.click(await screen.findByRole("button", { name: /^2 ноября/u }));
+    expect(screen.getByText("09:00–09:30")).toBeInTheDocument();
+
+    screen.getByRole("radio", { name: "Час" }).click();
+    expect(await screen.findByRole("radio", { checked: true, name: "Час" })).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: /^2 ноября/u }));
+
+    expect(screen.getByText("09:00–10:00")).toBeInTheDocument();
     expect(screen.queryByText("09:00–09:30")).not.toBeInTheDocument();
   });
 });

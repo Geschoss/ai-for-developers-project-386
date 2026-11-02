@@ -19,14 +19,15 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const isSlotTaken = (error: unknown): boolean => isRecord(error) && error["code"] === "slot_taken";
 
-const bookSlot = async (
-  calendarSlug: string,
-  startAt: string,
-  guest: GuestDraft,
-): Promise<BookingOutcome> => {
+const bookSlot = async (booking: {
+  calendarSlug: string;
+  eventTypeId: string;
+  guest: GuestDraft;
+  startAt: string;
+}): Promise<BookingOutcome> => {
   const result = await api.POST("/api/calendars/{calendarSlug}/bookings", {
-    body: { guest, startAt },
-    params: { path: { calendarSlug } },
+    body: { eventTypeId: booking.eventTypeId, guest: booking.guest, startAt: booking.startAt },
+    params: { path: { calendarSlug: booking.calendarSlug } },
   });
   if (result.data !== undefined) {
     return { confirmation: result.data, kind: "booked" };

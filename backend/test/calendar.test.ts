@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { Booking } from "../src/scheduling/domain/booking.js";
 import { Calendar } from "../src/scheduling/domain/calendar.js";
 import { DailyBookingLimit } from "../src/scheduling/domain/daily-booking-limit.js";
+import { EventType } from "../src/scheduling/domain/event-type.js";
 import { PlanningHorizon } from "../src/scheduling/domain/planning-horizon.js";
 import { SchedulingError } from "../src/scheduling/domain/scheduling-error.js";
 import type { Viewer } from "../src/scheduling/domain/viewer.js";
@@ -40,6 +41,23 @@ const defaultHorizon = 14;
 const defaultLimit = 2;
 // oxlint-disable-next-line eslint/no-magic-numbers -- today only
 const oneDayHorizon = 1;
+// oxlint-disable-next-line eslint/no-magic-numbers -- the grid these tests book is 30 minutes
+const halfHourMinutes = 30;
+// oxlint-disable-next-line eslint/no-magic-numbers -- seconds in a minute
+const secondsPerMinute = 60;
+// oxlint-disable-next-line eslint/no-magic-numbers -- milliseconds in a second
+const msPerSecond = 1000;
+
+const defaultTypeId = "type-30";
+const halfHour = EventType.restore({
+  description: "Короткий звонок",
+  durationMinutes: halfHourMinutes,
+  id: defaultTypeId,
+  name: "Звонок",
+});
+
+const endsAt = (startAt: string): Date =>
+  new Date(Date.parse(startAt) + halfHourMinutes * secondsPerMinute * msPerSecond);
 
 const otherViewer: Viewer = {
   calendarSlug: CalendarSlug.parse("boris"),
@@ -52,6 +70,7 @@ interface Restored {
   bookings?: readonly Booking[];
   dayFrom: Date;
   dayTo: Date;
+  eventTypes?: readonly EventType[];
   horizon?: number;
   limit?: number;
   timeZone: string;
@@ -63,6 +82,7 @@ const restore = (input: Restored): Calendar =>
     dailyBookingLimit: DailyBookingLimit.parse(input.limit ?? defaultLimit),
     dayFrom: input.dayFrom,
     dayTo: input.dayTo,
+    eventTypes: input.eventTypes ?? [halfHour],
     id: "calendar-1",
     ownerId,
     ownerName: "Анна",
@@ -71,7 +91,13 @@ const restore = (input: Restored): Calendar =>
     timeZone: TimeZone.parse(input.timeZone),
   });
 
-const moscowCalendar = (input: { bookings?: readonly Booking[]; limit?: number } = {}): Calendar =>
+const moscowCalendar = (
+  input: {
+    bookings?: readonly Booking[];
+    eventTypes?: readonly EventType[];
+    limit?: number;
+  } = {},
+): Calendar =>
   restore({
     dayFrom: moscowDayFrom,
     dayTo: moscowDayTo,
@@ -82,6 +108,7 @@ const moscowCalendar = (input: { bookings?: readonly Booking[]; limit?: number }
 interface BookAttempt {
   calendar: Calendar;
   email?: string;
+  eventTypeId?: string;
   now?: Date;
   startAt: string;
   viewer?: Viewer;
@@ -92,6 +119,7 @@ const book = (attempt: BookAttempt): string | undefined => {
   const now = attempt.now ?? aucklandMorning;
   try {
     attempt.calendar.book({
+      eventTypeId: attempt.eventTypeId ?? defaultTypeId,
       guestEmail: email,
       guestName: "Борис",
       now,
@@ -106,6 +134,16 @@ const book = (attempt: BookAttempt): string | undefined => {
     throw error;
   }
 };
+
+const storedBooking = (startAt: string, id: string, email = "vera@example.com"): Booking =>
+  new Booking({
+    endAt: endsAt(startAt),
+    eventTypeId: defaultTypeId,
+    guestEmail: email,
+    guestName: "Вера",
+    id,
+    startAt: new Date(startAt),
+  });
 
 describe("booking a free Слот", () => {
   it("books a free Слот for a visitor who does not own it", () => {
@@ -175,12 +213,7 @@ describe("the past and the Горизонт планирования", () => {
 
 describe("one civil day", () => {
   it("counts one email once per civil day, ignoring register, and stops at the Лимит бронирований", () => {
-    const existing = new Booking({
-      guestEmail: "Boris@Example.com",
-      guestName: "Борис",
-      id: "booked-earlier",
-      startAt: new Date(moscowEarlier),
-    });
+    const existing = storedBooking(moscowEarlier, "booked-earlier", "Boris@Example.com");
     const calendar = moscowCalendar({ bookings: [existing], limit: 1 });
     const sameGuest = book({ calendar, email: "boris@example.com", startAt: moscowAfternoon });
     const otherGuest = book({ calendar, email: "vera@example.com", startAt: moscowAfternoon });
@@ -190,12 +223,7 @@ describe("one civil day", () => {
   });
 
   it("rejects a Слот that this day already holds", () => {
-    const existing = new Booking({
-      guestEmail: "vera@example.com",
-      guestName: "Вера",
-      id: "taken",
-      startAt: new Date(moscowAfternoon),
-    });
+    const existing = storedBooking(moscowAfternoon, "taken");
     const calendar = moscowCalendar({ bookings: [existing] });
 
     expect(book({ calendar, email: "boris@example.com", startAt: moscowAfternoon })).toBe(
@@ -207,12 +235,7 @@ describe("one civil day", () => {
 
 describe("saving a new Бронирование", () => {
   it("appends only the new Бронирование and keeps the one already loaded for the day", () => {
-    const existing = new Booking({
-      guestEmail: "vera@example.com",
-      guestName: "Вера",
-      id: "kept",
-      startAt: new Date(moscowEarlier),
-    });
+    const existing = storedBooking(moscowEarlier, "kept");
     const calendar = moscowCalendar({ bookings: [existing] });
     const added = (): Booking => {
       const [booking] = calendar.addedBookings();
@@ -228,5 +251,29 @@ describe("saving a new Бронирование", () => {
     expect(book({ calendar, email: "vera@example.com", startAt: moscowEarlier })).toBe(
       "slot_taken",
     );
+  });
+});
+
+describe("intervals of different Типы событий", () => {
+  it("rejects an overlap and accepts the abutment", () => {
+    // oxlint-disable-next-line eslint/no-magic-numbers -- an hour-long Тип события
+    const hourMinutes = 60;
+    const hour = EventType.restore({
+      description: "Час",
+      durationMinutes: hourMinutes,
+      id: "type-60",
+      name: "Час",
+    });
+    const calendar = moscowCalendar({ eventTypes: [hour, halfHour] });
+    const now = new Date("2026-11-02T00:00:00.000Z");
+    const ten = "2026-11-02T07:00:00.000Z";
+    const tenThirty = "2026-11-02T07:30:00.000Z";
+    const eleven = "2026-11-02T08:00:00.000Z";
+
+    expect(book({ calendar, eventTypeId: hour.id, now, startAt: ten })).toBeUndefined();
+    expect(book({ calendar, eventTypeId: halfHour.id, now, startAt: tenThirty })).toBe(
+      "slot_taken",
+    );
+    expect(book({ calendar, eventTypeId: halfHour.id, now, startAt: eleven })).toBeUndefined();
   });
 });

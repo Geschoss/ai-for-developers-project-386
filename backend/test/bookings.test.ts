@@ -6,12 +6,15 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { testAppOptions } from "./app-options.js";
 import { expectMatchesSpec } from "./contract.js";
+import { openEventType } from "./open-event-type.js";
 
 const wideRange = { from: "2020-01-01T00:00:00.000Z", to: "2040-01-01T00:00:00.000Z" };
 const guestName = "Борис";
 const raceEmails = ["a@example.com", "b@example.com", "c@example.com", "d@example.com"];
 // oxlint-disable-next-line eslint/no-magic-numbers -- 48 hours later is another civil day in Europe/Moscow
 const laterDayMs = 48 * 60 * 60 * 1000;
+// oxlint-disable-next-line eslint/no-magic-numbers -- the grid these tests book is 30 minutes
+const halfHourMinutes = 30;
 
 interface Slot {
   startAt: string;
@@ -37,7 +40,32 @@ const runningApp = (): INestApplication => {
 
 let sequence = 0;
 
-const registerOwner = async (): Promise<string> => {
+const firstHeader = (header: string | string[] | undefined): string | undefined => {
+  if (Array.isArray(header)) {
+    return header[0];
+  }
+  return header;
+};
+
+/** `sid=…` from a `Set-Cookie` header, without the cookie attributes. */
+const sessionPair = (header: string | string[] | undefined): string => {
+  const raw = firstHeader(header);
+  if (raw === undefined) {
+    throw new Error("Set-Cookie is missing");
+  }
+  const [pair] = raw.split(";");
+  if (pair === undefined || !pair.startsWith("sid=")) {
+    throw new Error("Set-Cookie is missing sid");
+  }
+  return pair;
+};
+
+interface Owner {
+  eventTypeId: string;
+  slug: string;
+}
+
+const registerOwner = async (): Promise<Owner> => {
   sequence += 1;
   const slug = `book-${sequence}`;
   const response = await request(httpServer(runningApp()))
@@ -51,13 +79,20 @@ const registerOwner = async (): Promise<string> => {
     });
   expectMatchesSpec(response, "post", "/api/auth/register");
   expect(response.status).toBe(201);
-  return slug;
+  const eventTypeId = await openEventType(
+    runningApp(),
+    sessionPair(response.headers["set-cookie"]),
+    {
+      durationMinutes: halfHourMinutes,
+    },
+  );
+  return { eventTypeId, slug };
 };
 
-const listSlots = async (slug: string): Promise<request.Response> => {
+const listSlots = async (owner: Owner): Promise<request.Response> => {
   const response = await request(httpServer(runningApp()))
-    .get(`/api/calendars/${slug}/slots`)
-    .query(wideRange);
+    .get(`/api/calendars/${owner.slug}/slots`)
+    .query({ ...wideRange, eventTypeId: owner.eventTypeId });
   expectMatchesSpec(response, "get", "/api/calendars/{calendarSlug}/slots");
   return response;
 };
@@ -90,10 +125,10 @@ const furthestSlot = (slots: Slot[]): Slot => {
 
 const bookedSlots = (slots: Slot[]): Slot[] => slots.filter((slot) => slot.status === "booked");
 
-const book = async (slug: string, startAt: string, email: string): Promise<request.Response> => {
+const book = async (owner: Owner, startAt: string, email: string): Promise<request.Response> => {
   const response = await request(httpServer(runningApp()))
-    .post(`/api/calendars/${slug}/bookings`)
-    .send({ guest: { email, name: guestName }, startAt });
+    .post(`/api/calendars/${owner.slug}/bookings`)
+    .send({ eventTypeId: owner.eventTypeId, guest: { email, name: guestName }, startAt });
   expectMatchesSpec(response, "post", "/api/calendars/{calendarSlug}/bookings");
   return response;
 };
@@ -141,15 +176,15 @@ const laterSlot = (slots: Slot[], first: Slot): Slot => {
   return later;
 };
 
-const bookTwoDays = async (slug: string): Promise<{ first: string; later: string }> => {
-  const slots = slotsOf(await listSlots(slug));
+const bookTwoDays = async (owner: Owner): Promise<{ first: string; later: string }> => {
+  const slots = slotsOf(await listSlots(owner));
   const [first] = slots;
   if (first === undefined) {
     throw new Error("Expected a bookable Слот");
   }
   const later = laterSlot(slots, first);
-  const earlierBooking = await book(slug, first.startAt, "earlier@example.com");
-  const laterBooking = await book(slug, later.startAt, "later@example.com");
+  const earlierBooking = await book(owner, first.startAt, "earlier@example.com");
+  const laterBooking = await book(owner, later.startAt, "later@example.com");
   expect(earlierBooking.status).toBe(201);
   expect(laterBooking.status).toBe(201);
   return { first: first.startAt, later: later.startAt };
@@ -157,9 +192,9 @@ const bookTwoDays = async (slug: string): Promise<{ first: string; later: string
 
 describe("POST /api/calendars/:slug/bookings", () => {
   it("books a free Слот and then shows it as booked, without the Гость", async () => {
-    const slug = await registerOwner();
-    const slot = furthestSlot(slotsOf(await listSlots(slug)));
-    const response = await book(slug, slot.startAt, "boris@example.com");
+    const owner = await registerOwner();
+    const slot = furthestSlot(slotsOf(await listSlots(owner)));
+    const response = await book(owner, slot.startAt, "boris@example.com");
 
     expect(response.status).toBe(201);
     expect(response.body).toEqual({
@@ -167,7 +202,7 @@ describe("POST /api/calendars/:slug/bookings", () => {
       ownerTimeZone: "Europe/Moscow",
       startAt: slot.startAt,
     });
-    hiddenGuest(await listSlots(slug), slot.startAt);
+    hiddenGuest(await listSlots(owner), slot.startAt);
   });
 
   it.each([
@@ -176,19 +211,19 @@ describe("POST /api/calendars/:slug/bookings", () => {
     "2026-11-02T06:00:01.000Z",
     "2026-11-02T15:00:00.000Z",
   ])("rejects %s: it is not a start on the owner's grid", async (startAt) => {
-    const slug = await registerOwner();
-    const response = await book(slug, startAt, "off-grid@example.com");
+    const owner = await registerOwner();
+    const response = await book(owner, startAt, "off-grid@example.com");
 
     expect(response.status).toBe(422);
     expect(problemCode(response)).toBe("not_a_slot_start");
   });
 
   it("gives one Слот to exactly one of several simultaneous Гости", async () => {
-    const slug = await registerOwner();
-    const slot = furthestSlot(slotsOf(await listSlots(slug)));
+    const owner = await registerOwner();
+    const slot = furthestSlot(slotsOf(await listSlots(owner)));
     const responses = await Promise.all(
       raceEmails.map(async (email) => {
-        const response = await book(slug, slot.startAt, email);
+        const response = await book(owner, slot.startAt, email);
         return response;
       }),
     );
@@ -198,15 +233,15 @@ describe("POST /api/calendars/:slug/bookings", () => {
     expect(created).toHaveLength(1);
     expect(taken).toHaveLength(raceEmails.length - 1);
     expect(taken.every((response) => problemCode(response) === "slot_taken")).toBe(true);
-    hiddenGuest(await listSlots(slug), slot.startAt);
+    hiddenGuest(await listSlots(owner), slot.startAt);
   });
 });
 
 describe("a Календарь keeps Бронирования of other days", () => {
   it("keeps a Бронирование on another day when a later day is booked", async () => {
-    const slug = await registerOwner();
-    const booked = await bookTwoDays(slug);
-    const stored = bookedSlots(slotsOf(await listSlots(slug)));
+    const owner = await registerOwner();
+    const booked = await bookTwoDays(owner);
+    const stored = bookedSlots(slotsOf(await listSlots(owner)));
 
     expect(stored).toContainEqual({ startAt: booked.first, status: "booked" });
     expect(stored).toContainEqual({ startAt: booked.later, status: "booked" });

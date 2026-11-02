@@ -162,6 +162,7 @@ const expectFullDay = (timeZone: string, dayOffset: number): void => {
     year: shifted.getUTCFullYear(),
   });
   const slots = bookableSlots({
+    durationMinutes: slotLengthMinutes,
     from: wideFrom,
     now,
     planningHorizonDays: 1,
@@ -229,13 +230,23 @@ const checkWindow = (timeZone: string, dayOffset: number, horizon: number): void
   const now = new Date(Date.UTC(sampleYear, 0, 1) + dayOffset * msPerDay);
   const from = new Date(now.getTime() - msPerDay);
   const to = new Date(now.getTime() + (horizon + horizonPaddingDays) * msPerDay);
-  expectWithinRules(bookableSlots({ from, now, planningHorizonDays: horizon, timeZone, to }), {
-    from,
-    horizon,
-    now,
-    timeZone,
-    to,
-  });
+  expectWithinRules(
+    bookableSlots({
+      durationMinutes: slotLengthMinutes,
+      from,
+      now,
+      planningHorizonDays: horizon,
+      timeZone,
+      to,
+    }),
+    {
+      from,
+      horizon,
+      now,
+      timeZone,
+      to,
+    },
+  );
 };
 
 describe("bookableSlots properties", () => {

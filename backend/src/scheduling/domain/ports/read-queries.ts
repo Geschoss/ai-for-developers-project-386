@@ -1,7 +1,15 @@
 import type { CalendarSlug } from "../../../shared-kernel/calendar-slug.js";
 
 /** What a Гость sees on the public page. No account fields, no other Гость. */
+interface PublicEventType {
+  description: string;
+  durationMinutes: number;
+  id: string;
+  name: string;
+}
+
 interface PublicCalendarView {
+  eventTypes: PublicEventType[];
   ownerName: string;
   planningHorizonDays: number;
   timeZone: string;
@@ -29,6 +37,7 @@ interface PublicCalendarQuery {
 }
 
 interface SlotListRequest {
+  eventTypeId: string;
   from: Date;
   now: Date;
   slug: CalendarSlug;
@@ -56,6 +65,7 @@ export {
   type CalendarSettingsStore,
   type PublicCalendarQuery,
   type PublicCalendarView,
+  type PublicEventType,
   type SlotListQuery,
   type SlotListRequest,
   type SlotListView,

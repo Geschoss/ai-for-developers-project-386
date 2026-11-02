@@ -5,7 +5,7 @@ import type { components } from "spec/api";
 import { APP_OPTIONS, type AppOptions } from "../app-options.js";
 import { AccountsService } from "../identity/accounts.service.js";
 import { DATABASE, type Database } from "../platform/database/database.module.js";
-import { bookings, calendars, users } from "../platform/database/schema.js";
+import { bookings, calendars, eventTypes, users } from "../platform/database/schema.js";
 import { problem } from "../platform/problem.js";
 
 type Booking = components["schemas"]["Booking"];
@@ -13,6 +13,7 @@ type CurrentOwner = components["schemas"]["CurrentOwner"];
 
 interface BookingRow {
   createdAt: Date;
+  eventTypeName: string;
   guestEmail: string;
   guestName: string;
   id: string;
@@ -21,6 +22,7 @@ interface BookingRow {
 
 const bookingFrom = (row: BookingRow): Booking => ({
   createdAt: row.createdAt.toISOString(),
+  eventTypeName: row.eventTypeName,
   guest: { email: row.guestEmail, name: row.guestName },
   id: row.id,
   startAt: row.startAt.toISOString(),
@@ -46,6 +48,7 @@ class OwnerService {
     const rows = await this.db
       .select({
         createdAt: bookings.createdAt,
+        eventTypeName: eventTypes.name,
         guestEmail: bookings.guestEmail,
         guestName: bookings.guestName,
         id: bookings.id,
@@ -53,6 +56,7 @@ class OwnerService {
       })
       .from(bookings)
       .innerJoin(calendars, eq(bookings.calendarId, calendars.id))
+      .innerJoin(eventTypes, eq(bookings.eventTypeId, eventTypes.id))
       .where(and(eq(calendars.ownerId, ownerId), gt(bookings.startAt, current)))
       .orderBy(asc(bookings.startAt));
     return rows.map((row) => bookingFrom(row));

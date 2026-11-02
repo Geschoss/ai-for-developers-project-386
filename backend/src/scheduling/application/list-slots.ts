@@ -17,12 +17,18 @@ class ListSlots {
     @Inject(CLOCK) private readonly clock: Clock,
   ) {}
 
-  public async execute(calendarSlug: string, from: Date, to: Date): Promise<SlotListView> {
+  public async execute(request: {
+    calendarSlug: string;
+    eventTypeId: string;
+    from: Date;
+    to: Date;
+  }): Promise<SlotListView> {
     const list = await this.slots.list({
-      from,
+      eventTypeId: request.eventTypeId,
+      from: request.from,
       now: this.clock.now(),
-      slug: CalendarSlug.parse(calendarSlug),
-      to,
+      slug: CalendarSlug.parse(request.calendarSlug),
+      to: request.to,
     });
     if (list === undefined) {
       throw new SchedulingError("calendar_not_found");

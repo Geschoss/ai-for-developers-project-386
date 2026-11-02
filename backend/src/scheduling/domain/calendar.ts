@@ -2,14 +2,16 @@ import { randomUUID } from "node:crypto";
 
 import { CalendarSlug } from "../../shared-kernel/calendar-slug.js";
 import { TimeZone } from "../../shared-kernel/time-zone.js";
-import { Booking, type StoredBooking } from "./booking.js";
+import { Booking, type StoredBooking, intervalsOverlap } from "./booking.js";
 import { DailyBookingLimit } from "./daily-booking-limit.js";
+import { EventType, type StoredEventType } from "./event-type.js";
 import { PlanningHorizon } from "./planning-horizon.js";
 import { SchedulingError } from "./scheduling-error.js";
 import { SlotStart } from "./slot-start.js";
 import type { Viewer } from "./viewer.js";
 
 interface BookCommand {
+  eventTypeId: string;
   guestEmail: string;
   guestName: string;
   now: Date;
@@ -25,6 +27,7 @@ interface CalendarSnapshot {
   dayFrom: Date;
   /** End of that civil day. Exclusive. */
   dayTo: Date;
+  eventTypes: readonly EventType[];
   id: string;
   ownerId: string;
   ownerName: string;
@@ -38,6 +41,7 @@ interface LoadedCalendar {
   dailyBookingLimit: number;
   dayFrom: Date;
   dayTo: Date;
+  eventTypes: readonly StoredEventType[];
   id: string;
   ownerId: string;
   ownerName: string;
@@ -69,7 +73,9 @@ class Calendar {
   private readonly bookings: Booking[];
   private readonly dayFrom: Date;
   private readonly dayTo: Date;
+  private readonly eventTypes: readonly EventType[];
 
+  // oxlint-disable-next-line eslint/max-statements -- one assignment per snapshot field
   private constructor(snapshot: CalendarSnapshot) {
     this.id = snapshot.id;
     this.ownerId = snapshot.ownerId;
@@ -80,6 +86,7 @@ class Calendar {
     this.dailyBookingLimit = snapshot.dailyBookingLimit;
     this.dayFrom = snapshot.dayFrom;
     this.dayTo = snapshot.dayTo;
+    this.eventTypes = snapshot.eventTypes;
     this.bookings = [...snapshot.bookings];
   }
 
@@ -95,6 +102,7 @@ class Calendar {
       dailyBookingLimit: DailyBookingLimit.parse(loaded.dailyBookingLimit),
       dayFrom: loaded.dayFrom,
       dayTo: loaded.dayTo,
+      eventTypes: loaded.eventTypes.map((eventType) => EventType.restore(eventType)),
       id: loaded.id,
       ownerId: loaded.ownerId,
       ownerName: loaded.ownerName,
@@ -104,19 +112,20 @@ class Calendar {
     });
   }
 
-  /**
-   * Own Календарь, then the grid, then the past, then the Горизонт планирования.
-   * The Лимит бронирований and a taken Слот are decided from this day's Бронирования only.
-   */
-  public book(command: BookCommand): void {
-    this.rejectOwnCalendar(command.viewer);
-    const start = this.requireSlotStart(command.startAt);
+  private acceptBooking(command: BookCommand, eventType: EventType, start: SlotStart): void {
     rejectPast(start, command.now);
     this.rejectHorizon(start, command.now);
     this.rejectOutsideLoadedDay(start);
     this.rejectLimit(command.guestEmail);
-    this.rejectTaken(start);
+    this.appendBooking(command, eventType, start);
+  }
+
+  private appendBooking(command: BookCommand, eventType: EventType, start: SlotStart): void {
+    const endAt = eventType.endsAt(start.instant);
+    this.rejectOverlap(start.instant, endAt);
     const booking = new Booking({
+      endAt,
+      eventTypeId: eventType.id,
       guestEmail: command.guestEmail,
       guestName: command.guestName,
       id: randomUUID(),
@@ -124,6 +133,17 @@ class Calendar {
     });
     this.bookings.push(booking);
     this.added.push(booking);
+  }
+
+  /**
+   * Own Календарь, then the Тип события, then the grid, then the past, then the Горизонт планирования.
+   * The Лимит бронирований and a taken interval are decided from this day's Бронирования only.
+   */
+  public book(command: BookCommand): void {
+    this.rejectOwnCalendar(command.viewer);
+    const eventType = this.requireEventType(command.eventTypeId);
+    const start = this.requireSlotStart(command.startAt, eventType.durationMinutes);
+    this.acceptBooking(command, eventType, start);
   }
 
   /** Бронирования created by `book` since this Календарь was loaded. Save inserts these and nothing else. */
@@ -140,8 +160,16 @@ class Calendar {
     }
   }
 
-  private requireSlotStart(startAt: Date): SlotStart {
-    const start = SlotStart.onGrid(startAt, this.timeZone);
+  private requireEventType(eventTypeId: string): EventType {
+    const found = this.eventTypes.find((eventType) => eventType.id === eventTypeId);
+    if (found === undefined) {
+      throw new SchedulingError("event_type_not_found");
+    }
+    return found;
+  }
+
+  private requireSlotStart(startAt: Date, durationMinutes: number): SlotStart {
+    const start = SlotStart.onGrid(startAt, this.timeZone, durationMinutes);
     if (start === undefined) {
       throw new SchedulingError("not_a_slot_start");
     }
@@ -179,10 +207,9 @@ class Calendar {
     return count;
   }
 
-  private rejectTaken(start: SlotStart): void {
-    const time = start.instant.getTime();
+  private rejectOverlap(start: Date, end: Date): void {
     for (const booking of this.bookings) {
-      if (booking.startAt.getTime() === time) {
+      if (intervalsOverlap({ end, start }, { end: booking.endAt, start: booking.startAt })) {
         throw new SchedulingError("slot_taken");
       }
     }

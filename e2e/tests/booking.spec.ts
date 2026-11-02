@@ -1,5 +1,7 @@
 import { type Browser, type BrowserContext, type Page, expect, test } from "@playwright/test";
 
+import { openHalfHourType } from "./event-type.js";
+
 // oxlint-disable-next-line eslint/no-magic-numbers -- a Слот is 30 minutes
 const slotLengthMinutes = 30;
 // oxlint-disable-next-line eslint/no-magic-numbers -- seconds in a minute
@@ -84,9 +86,13 @@ const firstSlot = (slots: ListedSlot[]): ListedSlot => {
   return slot;
 };
 
-const readFirstStart = async (page: Page, slug: string): Promise<Date> => {
+const readFirstStart = async (page: Page, slug: string, eventTypeId: string): Promise<Date> => {
   const listed = await page.request.get(`/api/calendars/${slug}/slots`, {
-    params: { from: "2020-01-01T00:00:00.000Z", to: "2040-01-01T00:00:00.000Z" },
+    params: {
+      eventTypeId,
+      from: "2020-01-01T00:00:00.000Z",
+      to: "2040-01-01T00:00:00.000Z",
+    },
   });
   expect(listed.ok()).toBeTruthy();
   const body: unknown = await listed.json();
@@ -100,6 +106,7 @@ const fillGuest = async (page: Page, name: string, email: string): Promise<void>
 
 const chooseSlot = async (page: Page, slug: string, start: Date): Promise<void> => {
   await page.goto(`/u/${slug}`);
+  await expect(page.getByRole("radio", { name: "Звонок" })).toBeChecked();
   await page
     .getByRole("button", { name: new RegExp(`^${dayLabel(start)}, свободно`, "u") })
     .click();
@@ -167,7 +174,8 @@ const openRace = async (browser: Browser, page: Page): Promise<Race> => {
   const suffix = String(Date.now());
   const slug = `book-${suffix}`;
   await registerOwner(page, `${slug}@example.com`, slug);
-  const start = await readFirstStart(page, slug);
+  const eventTypeId = await openHalfHourType(page);
+  const start = await readFirstStart(page, slug, eventTypeId);
   const guestA = await browser.newContext({ timezoneId: guestTimeZone });
   const guestB = await browser.newContext({ timezoneId: guestTimeZone });
   const guests = await fillBoth(guestA, guestB, { slug, start });

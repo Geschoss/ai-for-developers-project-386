@@ -5,6 +5,7 @@ import type { components } from "spec/api";
 import { AccountsService } from "../../identity/accounts.service.js";
 import { sessionIdFrom } from "../../identity/session-cookie.js";
 import { CALENDAR_ROUTES, type CalendarRoutes } from "./calendar-routes.js";
+import { publishedType } from "./published-type.js";
 import { translateScheduling } from "./scheduling-problem.js";
 import { viewerFrom } from "./viewer-from.js";
 
@@ -23,7 +24,10 @@ export class CalendarsController {
   @Get(":calendarSlug")
   public async getPublic(@Param("calendarSlug") calendarSlug: string): Promise<PublicCalendar> {
     const calendar = await translateScheduling(this.routes.publicCalendar.execute(calendarSlug));
-    return calendar;
+    return {
+      ...calendar,
+      eventTypes: calendar.eventTypes.map((eventType) => publishedType(eventType)),
+    };
   }
 
   @Post(":calendarSlug/bookings")
@@ -43,11 +47,15 @@ export class CalendarsController {
   @Get(":calendarSlug/slots")
   public async listSlots(
     @Param("calendarSlug") calendarSlug: string,
-    @Query("from") from: string,
-    @Query("to") to: string,
+    @Query() query: { eventTypeId: string; from: string; to: string },
   ): Promise<SlotList> {
     const slots = await translateScheduling(
-      this.routes.listSlots.execute(calendarSlug, new Date(from), new Date(to)),
+      this.routes.listSlots.execute({
+        calendarSlug,
+        eventTypeId: query.eventTypeId,
+        from: new Date(query.from),
+        to: new Date(query.to),
+      }),
     );
     return slots;
   }

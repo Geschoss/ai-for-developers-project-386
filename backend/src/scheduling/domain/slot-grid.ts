@@ -1,10 +1,12 @@
 /**
- * Bookable Слоты on the 09:00–17:30 grid in the Календарь's time zone.
+ * Bookable Слоты on the 09:00–18:00 grid in the Календарь's time zone.
+ * Starts step by 30 minutes. A Слот must end by 18:00, so a longer Тип события has fewer starts.
  * `now` is injected so "today" and a Слот that has already started do not depend on the clock.
  * The grid is local time: a DST transition changes the UTC instant of 09:00, not the wall clock.
  */
 
 interface SlotQuery {
+  durationMinutes: number;
   from: Date;
   now: Date;
   planningHorizonDays: number;
@@ -24,16 +26,17 @@ interface WallClock extends CivilDate {
   second: number;
 }
 
-// oxlint-disable-next-line eslint/no-magic-numbers -- a Слот is 30 minutes
-const slotLengthMinutes = 30;
+// oxlint-disable-next-line eslint/no-magic-numbers -- starts step by 30 minutes
+const stepMinutes = 30;
 // oxlint-disable-next-line eslint/no-magic-numbers -- the grid starts at 09:00
 const firstSlotHour = 9;
-// oxlint-disable-next-line eslint/no-magic-numbers -- 18 Слотов, the last is 17:30–18:00
-const slotsPerDay = 18;
+// oxlint-disable-next-line eslint/no-magic-numbers -- the grid ends at 18:00
+const dayEndHour = 18;
 // oxlint-disable-next-line eslint/no-magic-numbers -- minutes in an hour
 const minutesPerHour = 60;
 
 const firstSlotMinutes = firstSlotHour * minutesPerHour;
+const dayEndMinutes = dayEndHour * minutesPerHour;
 
 const formatterFor = (timeZone: string): Intl.DateTimeFormat =>
   new Intl.DateTimeFormat("en-US", {
@@ -109,7 +112,7 @@ const addDays = (date: CivilDate, days: number): CivilDate => {
 };
 
 const slotStart = (formatter: Intl.DateTimeFormat, date: CivilDate, index: number): Date => {
-  const minuteOfDay = firstSlotMinutes + index * slotLengthMinutes;
+  const minuteOfDay = firstSlotMinutes + index * stepMinutes;
   return zonedLocalToUtc(formatter, {
     date,
     hour: Math.floor(minuteOfDay / minutesPerHour),
@@ -117,7 +120,14 @@ const slotStart = (formatter: Intl.DateTimeFormat, date: CivilDate, index: numbe
   });
 };
 
-const lastSlotIndex = slotsPerDay - 1;
+/** How many starts fit in 09:00–18:00 when each Слот lasts `durationMinutes`. */
+const startsOnDay = (durationMinutes: number): number => {
+  const lastStart = dayEndMinutes - durationMinutes;
+  if (lastStart < firstSlotMinutes) {
+    return 0;
+  }
+  return Math.floor((lastStart - firstSlotMinutes) / stepMinutes) + 1;
+};
 
 const utcMidnight = (date: CivilDate): number => Date.UTC(date.year, date.month - 1, date.day);
 
@@ -158,23 +168,23 @@ const withinPlanningHorizon = (check: HorizonCheck): boolean => {
   return notBefore(slotDay, today) && notBefore(last, slotDay);
 };
 
-const onOwnerGrid = (minuteOfDay: number): boolean => {
-  const lastStart = firstSlotMinutes + lastSlotIndex * slotLengthMinutes;
+const onOwnerGrid = (minuteOfDay: number, durationMinutes: number): boolean => {
+  const lastStart = dayEndMinutes - durationMinutes;
   if (minuteOfDay < firstSlotMinutes || minuteOfDay > lastStart) {
     return false;
   }
-  return (minuteOfDay - firstSlotMinutes) % slotLengthMinutes === 0;
+  return (minuteOfDay - firstSlotMinutes) % stepMinutes === 0;
 };
 
-/** True when `instant` is exactly 09:00, 09:30, … or 17:30 in `timeZone`. */
-const isSlotStart = (instant: Date, timeZone: string): boolean => {
+/** True when `instant` is a 30-minute start in `timeZone` and the Слот ends by 18:00. */
+const isSlotStart = (instant: Date, timeZone: string, durationMinutes: number): boolean => {
   if (Number.isNaN(instant.getTime()) || instant.getUTCMilliseconds() !== 0) {
     return false;
   }
   const formatter = formatterFor(timeZone);
   const clock = wallClock(formatter, instant);
   const minuteOfDay = clock.hour * minutesPerHour + clock.minute;
-  if (clock.second !== 0 || !onOwnerGrid(minuteOfDay)) {
+  if (clock.second !== 0 || !onOwnerGrid(minuteOfDay, durationMinutes)) {
     return false;
   }
   const canonical = zonedLocalToUtc(formatter, {
@@ -197,7 +207,7 @@ const bookableSlots = (query: SlotQuery): Date[] => {
   const starts: Date[] = [];
   for (let dayOffset = 0; dayOffset < query.planningHorizonDays; dayOffset += 1) {
     const date = addDays(today, dayOffset);
-    for (let index = 0; index < slotsPerDay; index += 1) {
+    for (let index = 0; index < startsOnDay(query.durationMinutes); index += 1) {
       const start = slotStart(formatter, date, index);
       if (offered(start, query)) {
         starts.push(start);

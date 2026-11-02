@@ -5,6 +5,7 @@ import { SchedulingError, type SchedulingCode } from "../domain/scheduling-error
 const statusByCode: Record<SchedulingCode, number> = {
   calendar_not_found: 404,
   daily_limit_reached: 409,
+  event_type_not_found: 404,
   not_a_slot_start: 422,
   outside_planning_horizon: 422,
   own_calendar: 422,

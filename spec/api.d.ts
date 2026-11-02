@@ -183,6 +183,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/owner/event-types": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Типы событий текущего Владельца. Изменить и удалить тип нельзя. */
+        get: operations["listEventTypes"];
+        put?: never;
+        /** @description Создаёт Тип события. Длительность вне шага 30 минут — `validation_failed`. */
+        post: operations["createEventType"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/owner/settings": {
         parameters: {
             query?: never;
@@ -209,6 +227,8 @@ export interface components {
         Booking: {
             id: components["schemas"]["Uuid"];
             guest: components["schemas"]["Guest"];
+            /** @description Название Типа события на момент записи. */
+            eventTypeName: components["schemas"]["EventTypeName"];
             /**
              * Format: date-time
              * @description Начало Слота, UTC.
@@ -273,9 +293,11 @@ export interface components {
         BookingRequest: {
             /**
              * Format: date-time
-             * @description Начало Слота, UTC. Должно совпадать с началом Слота сетки.
+             * @description Начало Слота, UTC. Должно совпадать с началом Слота выбранного типа.
              */
             startAt: string;
+            /** @description Тип события этого Календаря. Чужой id — `event_type_not_found`. */
+            eventTypeId: components["schemas"]["Uuid"];
             guest: components["schemas"]["Guest"];
         };
         /** @description Неизвестный Адрес календаря. */
@@ -330,6 +352,44 @@ export interface components {
         DailyBookingLimit: number;
         /** Format: email */
         Email: string;
+        /**
+         * @description Длительность Типа события в минутах.
+         *     От 30 до 540 включительно, шаг 30: Слот должен целиком уложиться в 09:00–18:00.
+         * @enum {number}
+         */
+        EventDuration: 30 | 60 | 90 | 120 | 150 | 180 | 210 | 240 | 270 | 300 | 330 | 360 | 390 | 420 | 450 | 480 | 510 | 540;
+        /** @description Тип события, который Гость выбирает перед Слотами. */
+        EventType: {
+            id: components["schemas"]["Uuid"];
+            name: components["schemas"]["EventTypeName"];
+            description: components["schemas"]["EventTypeDescription"];
+            /** @description Длительность Слота этого типа, в минутах. */
+            durationMinutes: components["schemas"]["EventDuration"];
+        };
+        /** @description Описание Типа события. */
+        EventTypeDescription: string;
+        EventTypeList: {
+            /** @description В порядке создания. */
+            eventTypes: components["schemas"]["EventType"][];
+        };
+        /** @description Название Типа события. */
+        EventTypeName: string;
+        /** @description Id Типа события не принадлежит этому Календарю. */
+        EventTypeNotFound: {
+            /**
+             * @description Машиночитаемый код ошибки.
+             * @enum {string}
+             */
+            code: "event_type_not_found";
+            /**
+             * @description HTTP-статус, дублирует статус ответа (RFC 9457).
+             * @enum {number}
+             */
+            status: 404;
+            /** @description Короткое описание для разработчика, не для показа пользователю. */
+            title: string;
+            detail?: string;
+        };
         /** @description Сессия есть, но роль не подходит для операции. */
         Forbidden: {
             /**
@@ -370,6 +430,12 @@ export interface components {
             /** @description Короткое описание для разработчика, не для показа пользователю. */
             title: string;
             detail?: string;
+        };
+        /** @description Новый Тип события. Id выдаёт сервер. */
+        NewEventType: {
+            name: components["schemas"]["EventTypeName"];
+            description: components["schemas"]["EventTypeDescription"];
+            durationMinutes: components["schemas"]["EventDuration"];
         };
         /** @description Владелец в списке Администратора. */
         Owner: {
@@ -412,6 +478,8 @@ export interface components {
             ownerName: components["schemas"]["PersonName"];
             timeZone: components["schemas"]["TimeZone"];
             planningHorizonDays: components["schemas"]["PlanningHorizon"];
+            /** @description В порядке создания. Пустой список — бронь не принимается. */
+            eventTypes: components["schemas"]["EventType"][];
         };
         /** @description Email или Адрес календаря уже заняты. */
         RegistrationConflict: {
@@ -429,7 +497,7 @@ export interface components {
             title: string;
             detail?: string;
         };
-        /** @description 30-минутный Слот. Для Гостя он только «свободно» или «занято»: кто его занял, не раскрывается. */
+        /** @description Слот выбранного Типа события. Для Гостя он только «свободно» или «занято»: кто его занял, не раскрывается. */
         Slot: {
             /**
              * Format: date-time
@@ -747,7 +815,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["CalendarNotFound"];
+                    "application/problem+json": components["schemas"]["CalendarNotFound"] | components["schemas"]["EventTypeNotFound"];
                 };
             };
             /** @description Слот занят другим Гостем или email исчерпал Лимит бронирований на этот день у этого Владельца. */
@@ -781,6 +849,7 @@ export interface operations {
             query: {
                 from: string;
                 to: string;
+                eventTypeId: components["schemas"]["Uuid"];
             };
             header?: never;
             path: {
@@ -814,7 +883,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/problem+json": components["schemas"]["CalendarNotFound"];
+                    "application/problem+json": components["schemas"]["CalendarNotFound"] | components["schemas"]["EventTypeNotFound"];
                 };
             };
         };
@@ -855,6 +924,95 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BookingList"];
+                };
+            };
+            /** @description Нет сессии или она истекла. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Unauthenticated"];
+                };
+            };
+            /** @description Сессия есть, но роль не подходит для операции. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Forbidden"];
+                };
+            };
+        };
+    };
+    listEventTypes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventTypeList"];
+                };
+            };
+            /** @description Нет сессии или она истекла. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Unauthenticated"];
+                };
+            };
+            /** @description Сессия есть, но роль не подходит для операции. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["Forbidden"];
+                };
+            };
+        };
+    };
+    createEventType: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewEventType"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded and a new resource has been created as a result. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventType"];
+                };
+            };
+            /** @description Запрос не прошёл проверку по схеме. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ValidationProblem"];
                 };
             };
             /** @description Нет сессии или она истекла. */

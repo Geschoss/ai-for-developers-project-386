@@ -108,6 +108,8 @@ const BoardColumns = ({
   bounds,
   calendarSlug,
   day,
+  durationMinutes,
+  eventTypeId,
   groups,
   guestTimeZone,
   month,
@@ -119,6 +121,8 @@ const BoardColumns = ({
   bounds: { earliest: YearMonth; latest: YearMonth };
   calendarSlug: string;
   day: string | undefined;
+  durationMinutes: number;
+  eventTypeId: string;
   groups: Map<string, DayGroup>;
   guestTimeZone: string;
   month: YearMonth;
@@ -141,6 +145,8 @@ const BoardColumns = ({
       key={day}
       calendarSlug={calendarSlug}
       day={day}
+      durationMinutes={durationMinutes}
+      eventTypeId={eventTypeId}
       group={groupFor(groups, day)}
       guestTimeZone={guestTimeZone}
       onRefresh={onRefresh}
@@ -149,10 +155,32 @@ const BoardColumns = ({
   </SimpleGrid>
 );
 
+const bannerFor = ({
+  calendar,
+  day,
+  groups,
+  guestTimeZone,
+  slots,
+}: {
+  calendar: PublicCalendar;
+  day: string | undefined;
+  groups: Map<string, DayGroup>;
+  guestTimeZone: string;
+  slots: readonly Slot[];
+}): string | undefined =>
+  zoneBanner({
+    guestTimeZone,
+    now: new Date(),
+    ownerTimeZone: calendar.timeZone,
+    sampleStart: bannerSample(groups, day, slots),
+  });
+
 /** Month of bookable days. A chosen free Слот takes a name and email, then shows «Вы записаны». */
 const SlotBoard = ({
   calendar,
   calendarSlug,
+  durationMinutes,
+  eventTypeId,
   guestTimeZone,
   onRefresh,
   ownCalendar,
@@ -160,6 +188,8 @@ const SlotBoard = ({
 }: {
   calendar: PublicCalendar;
   calendarSlug: string;
+  durationMinutes: number;
+  eventTypeId: string;
   guestTimeZone: string;
   onRefresh: () => Promise<void>;
   ownCalendar: boolean;
@@ -168,12 +198,7 @@ const SlotBoard = ({
   const { bounds, groups, opened } = boardDays(calendar, guestTimeZone, slots);
   const [month, setMonth] = useState(opened);
   const [day, setDay] = useState<string>();
-  const banner = zoneBanner({
-    guestTimeZone,
-    now: new Date(),
-    ownerTimeZone: calendar.timeZone,
-    sampleStart: bannerSample(groups, day, slots),
-  });
+  const banner = bannerFor({ calendar, day, groups, guestTimeZone, slots });
 
   return (
     <Stack gap="md">
@@ -184,6 +209,8 @@ const SlotBoard = ({
         bounds={bounds}
         calendarSlug={calendarSlug}
         day={day}
+        durationMinutes={durationMinutes}
+        eventTypeId={eventTypeId}
         groups={groups}
         guestTimeZone={guestTimeZone}
         month={month}

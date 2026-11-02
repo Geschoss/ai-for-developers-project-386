@@ -49,13 +49,31 @@ const validation = (path: string): Response =>
     title: "Bad Request",
   });
 
+const createdTypeId = "11111111-1111-4111-8111-111111111111";
+
+const createdType = (body: unknown): Response => {
+  if (typeof body !== "object" || body === null) {
+    return json(201, { id: createdTypeId });
+  }
+  return json(201, { ...body, id: createdTypeId });
+};
+
+const eventTypeResponse = async (input: RequestInfo | URL): Promise<Response> => {
+  if (input instanceof Request && input.method === "POST") {
+    return createdType(await input.json());
+  }
+  return json(200, { eventTypes: [] });
+};
+
 const settingsFetch =
   (onPut: (body: unknown) => Response): typeof fetch =>
   async (input: RequestInfo | URL): Promise<Response> => {
     const url = urlOf(input);
+    if (url.includes("/api/owner/event-types")) {
+      return eventTypeResponse(input);
+    }
     if (input instanceof Request && url.includes("/api/owner/settings") && input.method === "PUT") {
-      const body: unknown = await input.json();
-      return onPut(body);
+      return onPut(await input.json());
     }
     if (url.includes("/api/owner/settings")) {
       return json(200, defaults);
@@ -195,6 +213,34 @@ describe("owner settings validation", () => {
     expect(
       await screen.findByText("Горизонт планирования — целое число от 1 до 60"),
     ).toBeInTheDocument();
+  });
+});
+
+const fillEventType = async (): Promise<void> => {
+  fireEvent.change(await screen.findByLabelText("Название"), { target: { value: "Звонок" } });
+  fireEvent.change(screen.getByLabelText("Описание"), { target: { value: "Короткий звонок" } });
+  fireEvent.change(screen.getByLabelText("Длительность, минуты"), { target: { value: "60" } });
+  fireEvent.click(screen.getByRole("button", { name: "Добавить" }));
+};
+
+describe("creating a Тип события", () => {
+  beforeEach(() => {
+    globalThis.history.pushState({}, "", "/");
+  });
+
+  it("adds a Тип события and does not show its id", async () => {
+    vi.stubGlobal(
+      "fetch",
+      settingsFetch(() => json(200, defaults)),
+    );
+    await openSettings();
+    await fillEventType();
+
+    expect(await screen.findByText("Тип события добавлен")).toBeInTheDocument();
+    expect(screen.getByText("Звонок")).toBeInTheDocument();
+    expect(screen.getByText("Короткий звонок")).toBeInTheDocument();
+    expect(screen.getByText("60 минут")).toBeInTheDocument();
+    expect(screen.queryByText(createdTypeId)).not.toBeInTheDocument();
   });
 });
 
